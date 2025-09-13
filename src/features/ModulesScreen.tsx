@@ -18,7 +18,7 @@ export const ModulesScreen: React.FC = () => {
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [showFloatingButton, setShowFloatingButton] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollYRef = useRef(0);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const modulesPerPage = 6; // Количество модулей на странице
   const screenRef = useRef<HTMLDivElement>(null);
@@ -87,16 +87,18 @@ export const ModulesScreen: React.FC = () => {
 
   // Simplified floating button scroll logic - show on scroll up, hide on scroll down
   useEffect(() => {
-    const screenElement = screenRef.current;
-    if (!screenElement) return;
-
+    console.log('🔧 useEffect triggered - setting up scroll listener');
+    
     let ticking = false;
+    let screenElement: HTMLDivElement | null = null;
 
     const handleScroll = () => {
-      if (ticking) return;
+      console.log('🎯 handleScroll called!');
+      if (ticking || !screenElement) return;
 
       ticking = true;
       requestAnimationFrame(() => {
+        console.log('🎯 requestAnimationFrame executing...');
         ticking = false;
 
         // Always hide if user has active subscription
@@ -105,20 +107,36 @@ export const ModulesScreen: React.FC = () => {
           return;
         }
 
-        const currentScrollY = screenElement.scrollTop;
-        const scrollHeight = screenElement.scrollHeight;
-        const clientHeight = screenElement.clientHeight;
+        const currentScrollY = screenElement!.scrollTop;
+        const scrollHeight = screenElement!.scrollHeight;
+        const clientHeight = screenElement!.clientHeight;
         
-        // Calculate scroll direction
-        const scrollDelta = currentScrollY - lastScrollY;
-        const isScrollingUp = scrollDelta < -5; // Threshold to avoid jitter
-        const isScrollingDown = scrollDelta > 5;
+        // Calculate scroll direction - lower threshold for testing
+        const scrollDelta = currentScrollY - lastScrollYRef.current;
+        const isScrollingUp = scrollDelta < -2; // Lower threshold for more sensitivity
+        const isScrollingDown = scrollDelta > 2;
         
         // Check positions - only show floating button when main CTA is out of view
         const isAtTop = false; // Hide until main button scrolls out of view
         const isNearBottom = currentScrollY >= (scrollHeight - clientHeight - 120); // Hide when main CTA button is visible
         const canScroll = scrollHeight > clientHeight; // Content is scrollable
         
+        // Temporary debug to understand the issue - log EVERY scroll event
+        console.log('🐛 EVERY SCROLL:', {
+          scrollY: Math.round(currentScrollY),
+          delta: Math.round(scrollDelta),
+          scrollUp: isScrollingUp,
+          scrollDown: isScrollingDown,
+          canScroll,
+          isAtTop,
+          isNearBottom,
+          scrollHeight: Math.round(scrollHeight),
+          clientHeight: Math.round(clientHeight),
+          distanceFromBottom: Math.round(scrollHeight - clientHeight - currentScrollY),
+          shouldShow: canScroll && !isAtTop && !isNearBottom && isScrollingUp,
+          currentVisible: showFloatingButton
+        });
+
         // Simple logic: Show on scroll up, hide on scroll down or at edges
         if (canScroll && !isAtTop && !isNearBottom) {
           if (isScrollingUp) {
@@ -131,16 +149,49 @@ export const ModulesScreen: React.FC = () => {
           setShowFloatingButton(false);
         }
         
-        setLastScrollY(currentScrollY);
+        lastScrollYRef.current = currentScrollY;
       });
     };
-
-    screenElement.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Retry logic to find Screen element - try multiple times with increasing delays
+    let retryTimeouts: NodeJS.Timeout[] = [];
+    let retries = 0;
+    const maxRetries = 10;
+    
+    const trySetupListener = () => {
+      screenElement = screenRef.current;
+      console.log(`🔧 Attempt ${retries + 1}: screenElement:`, screenElement);
+      
+      if (screenElement) {
+        console.log('✅ Adding scroll listener to:', screenElement);
+        screenElement.addEventListener('scroll', handleScroll, { passive: true });
+        console.log('✅ Scroll listener added successfully');
+        return;
+      }
+      
+      retries++;
+      if (retries < maxRetries) {
+        const delay = 50 * retries; // 50ms, 100ms, 150ms, etc.
+        console.log(`⏳ Retry ${retries}/${maxRetries} in ${delay}ms...`);
+        const timeoutId = globalThis.setTimeout(trySetupListener, delay);
+        retryTimeouts.push(timeoutId);
+      } else {
+        console.log('❌ Failed to find screenElement after all retries');
+      }
+    };
+    
+    // Start first attempt
+    const initialTimeout = globalThis.setTimeout(trySetupListener, 50);
+    retryTimeouts.push(initialTimeout);
     
     return () => {
-      screenElement.removeEventListener('scroll', handleScroll);
+      console.log('🧹 Cleaning up scroll listener and all timeouts');
+      retryTimeouts.forEach(id => clearTimeout(id));
+      if (screenElement) {
+        screenElement.removeEventListener('scroll', handleScroll);
+      }
     };
-  }, [lastScrollY, hasActiveSubscription]);
+  }, [hasActiveSubscription]);
 
   // Track impressions
   useEffect(() => {
@@ -537,7 +588,7 @@ export const ModulesScreen: React.FC = () => {
               setIsPaywallOpen(true);
             }}
             onMouseEnter={() => hapticFeedback.selection()}
-            className="relative flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 hover:from-telegram-accent/90 hover:via-blue-500/90 hover:to-purple-500/90 text-white font-bold text-lg rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 backdrop-blur-sm group-hover:border-white/30"
+            className="relative flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 hover:from-telegram-accent/90 hover:via-blue-500/90 hover:to-purple-500/90 text-white font-bold text-base rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 backdrop-blur-sm group-hover:border-white/30 whitespace-nowrap"
           >
             {/* Animated background pattern - matching main CTA */}
             <div className="absolute inset-0 rounded-full overflow-hidden">
@@ -545,11 +596,11 @@ export const ModulesScreen: React.FC = () => {
             </div>
             
             {/* Content */}
-            <div className="relative flex items-center gap-3">
+            <div className="relative flex items-center gap-2">
               {/* Animated icon - matching main CTA */}
-              <div className="flex items-center justify-center w-6 h-6">
+              <div className="flex items-center justify-center w-5 h-5">
                 <svg 
-                  className="w-5 h-5 transform group-hover:rotate-12 transition-transform duration-300" 
+                  className="w-4 h-4 transform group-hover:rotate-12 transition-transform duration-300" 
                   viewBox="0 0 24 24" 
                   fill="none" 
                   stroke="currentColor" 
@@ -566,9 +617,9 @@ export const ModulesScreen: React.FC = () => {
               </span>
               
               {/* Arrow - matching main CTA */}
-              <div className="flex items-center justify-center w-5 h-5">
+              <div className="flex items-center justify-center w-4 h-4">
                 <svg 
-                  className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" 
+                  className="w-3 h-3 transform group-hover:translate-x-1 transition-transform duration-300" 
                   viewBox="0 0 24 24" 
                   fill="none" 
                   stroke="currentColor" 
