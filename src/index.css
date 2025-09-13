@@ -73,6 +73,7 @@ body {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  border: 0 !important;
 }
 
 /* Allow text selection for inputs and content areas */

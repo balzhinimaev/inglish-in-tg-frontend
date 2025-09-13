@@ -256,14 +256,14 @@ export const ModulesScreen: React.FC = () => {
       <Screen ref={screenRef}>
         <div className="max-w-md mx-auto">
         {/* Profile Button - Above Header */}
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-4 max-[300px]:mb-2">
           <button
             onClick={() => {
               hapticFeedback.impact('light');
               tracking.custom('modules_profile_button_clicked');
               navigateTo(APP_STATES.PROFILE);
             }}
-            className="flex items-center gap-2 px-3 py-2 bg-telegram-card-bg hover:bg-telegram-secondary-bg border border-telegram-hint/20 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm group"
+            className="flex items-center gap-2 px-3 py-2 bg-telegram-card-bg hover:bg-telegram-secondary-bg border border-telegram-hint/20 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm group max-[300px]:px-2 max-[300px]:py-1.5 max-[300px]:gap-1"
           >
             {/* Avatar */}
             <div className="relative">
@@ -271,11 +271,11 @@ export const ModulesScreen: React.FC = () => {
                 <img 
                   src={user.photoUrl} 
                   alt="Profile"
-                  className="w-8 h-8 rounded-full border-2 border-telegram-hint/30"
+                  className="w-8 h-8 rounded-full border-2 border-telegram-hint/30 max-[300px]:w-6 max-[300px]:h-6 max-[300px]:border"
                 />
               ) : (
-                <div className="w-8 h-8 bg-gradient-to-br from-telegram-accent to-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-semibold">
+                <div className="w-8 h-8 bg-gradient-to-br from-telegram-accent to-blue-500 rounded-full flex items-center justify-center max-[300px]:w-6 max-[300px]:h-6">
+                  <span className="text-white text-sm font-semibold max-[300px]:text-xs">
                     {(telegramUser?.first_name?.[0] || user?.firstName?.[0] || 'У').toUpperCase()}
                   </span>
                 </div>
@@ -283,8 +283,8 @@ export const ModulesScreen: React.FC = () => {
               
               {/* Subscription indicator */}
               {hasActiveSubscription() && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-telegram-accent rounded-full border-2 border-telegram-bg flex items-center justify-center">
-                  <svg className="w-1.5 h-1.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-telegram-accent rounded-full border-2 border-telegram-bg flex items-center justify-center max-[300px]:w-2 max-[300px]:h-2 max-[300px]:border">
+                  <svg className="w-1.5 h-1.5 text-white max-[300px]:w-1 max-[300px]:h-1" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M9 12l2 2 4-4"/>
                   </svg>
                 </div>
@@ -292,7 +292,7 @@ export const ModulesScreen: React.FC = () => {
             </div>
             
             {/* User info */}
-            <div className="hidden sm:flex flex-col items-start min-w-0">
+            <div className="hidden sm:flex flex-col items-start min-w-0 max-[300px]:hidden">
               <span className="text-sm font-medium text-telegram-text truncate max-w-20">
                 {telegramUser?.first_name || user?.firstName || 'Профиль'}
               </span>
@@ -304,57 +304,57 @@ export const ModulesScreen: React.FC = () => {
             </div>
             
             {/* Arrow icon */}
-            <svg className="w-4 h-4 text-telegram-hint group-hover:text-telegram-text transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="w-4 h-4 text-telegram-hint group-hover:text-telegram-text transition-colors max-[300px]:w-3 max-[300px]:h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M9 18l6-6-6-6"/>
             </svg>
           </button>
         </div>
 
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-telegram-text mb-3">Модули</h1>
-          <p className="text-telegram-hint text-lg">Выберите модуль для продолжения</p>
+        <div className="text-center mb-8 max-[300px]:mb-4">
+          <h1 className="text-2xl font-bold text-telegram-text mb-3 max-[300px]:text-xl max-[300px]:mb-2">Модули</h1>
+          <p className="text-telegram-hint text-lg max-[300px]:text-base max-[300px]:px-2">Выберите модуль для продолжения</p>
         </div>
 
 
-        <div className="space-y-4">
+        <div className="space-y-4 max-[300px]:space-y-2">
           {modules.map((m) => {
             const locked = !m.isAvailable;
             const proBadge = m.requiresPro;
             const progressRatio = m.progress ? Math.min(1, Math.max(0, (m.progress.completed + m.progress.inProgress) / Math.max(1, m.progress.total))) : 0;
 
             return (
-              <Card key={m.moduleRef} clickable onClick={() => handleModuleClick(m)} className={locked ? 'opacity-60 bg-telegram-secondary-bg border-telegram-secondary-bg' : ''}>
-                <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${locked ? 'bg-telegram-card-bg' : 'bg-telegram-button'}`}>
+              <Card key={m.moduleRef} clickable onClick={() => handleModuleClick(m)} className={`${locked ? 'opacity-60 bg-telegram-secondary-bg border-telegram-secondary-bg' : ''} max-[300px]:px-3 max-[300px]:py-3`}>
+                <div className="flex items-start gap-4 max-[300px]:gap-2.5">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${locked ? 'bg-telegram-card-bg' : 'bg-telegram-button'} max-[300px]:w-8 max-[300px]:h-8`}>
                     {locked ? (
-                      <svg className="w-6 h-6 text-telegram-hint" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg className="w-6 h-6 text-telegram-hint max-[300px]:w-4 max-[300px]:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                         <circle cx="12" cy="7" r="4"/>
                         <path d="M12 1v6"/>
                       </svg>
                     ) : (
-                      <svg className="w-6 h-6 text-telegram-button-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg className="w-6 h-6 text-telegram-button-text max-[300px]:w-4 max-[300px]:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
                         <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                       </svg>
                     )}
                   </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className={`font-semibold text-lg ${locked ? 'text-telegram-hint' : 'text-telegram-text'}`}>{m.title}</h3>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 max-[300px]:mb-0.5">
+                      <h3 className={`font-semibold text-lg ${locked ? 'text-telegram-hint' : 'text-telegram-text'} max-[300px]:text-base max-[300px]:leading-tight truncate`}>{m.title}</h3>
                       {proBadge && (
-                        <span className="ml-2 px-2 py-0.5 text-[10px] rounded-full bg-telegram-card-bg text-telegram-accent border border-white/10">
+                        <span className="ml-2 px-2 py-0.5 text-[10px] rounded-full bg-telegram-card-bg text-telegram-accent border border-white/10 max-[300px]:px-1.5 max-[300px]:py-0.5 max-[300px]:text-[9px] max-[300px]:ml-1 shrink-0">
                           PRO
                         </span>
                       )}
                     </div>
-                    <div className={`text-sm mb-3 ${locked ? 'text-telegram-hint opacity-70' : 'text-telegram-hint'}`}>{m.description}</div>
+                    <div className={`text-sm mb-3 ${locked ? 'text-telegram-hint opacity-70' : 'text-telegram-hint'} max-[300px]:text-xs max-[300px]:mb-2 max-[300px]:leading-tight`}>{m.description}</div>
 
                     {/* Progress */}
                     {m.progress && (
-                      <div className="w-full h-2 rounded-full bg-telegram-secondary-bg overflow-hidden border border-white/10">
+                      <div className="w-full h-2 rounded-full bg-telegram-secondary-bg overflow-hidden border border-white/10 max-[300px]:h-1.5">
                         <div
                           className="h-full bg-telegram-accent rounded-full transition-all"
                           style={{ width: `${Math.round(progressRatio * 100)}%` }}
@@ -364,13 +364,13 @@ export const ModulesScreen: React.FC = () => {
                   </div>
 
                   {/* Right chevron or lock */}
-                  <div className="pt-1">
+                  <div className="pt-1 shrink-0">
                     {locked ? (
-                      <svg className="w-5 h-5 text-telegram-hint" viewBox="0 0 24 24" fill="currentColor">
+                      <svg className="w-5 h-5 text-telegram-hint max-[300px]:w-4 max-[300px]:h-4" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5 text-telegram-hint" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg className="w-5 h-5 text-telegram-hint max-[300px]:w-4 max-[300px]:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M9 18l6-6-6-6" />
                       </svg>
                     )}
@@ -383,9 +383,9 @@ export const ModulesScreen: React.FC = () => {
 
         {/* Pagination - OnboardingScreen style */}
         {totalPages > 1 && (
-          <div className="mt-8 flex flex-col items-center">
+          <div className="mt-8 flex flex-col items-center max-[300px]:mt-4">
             {/* Page indicators (like step indicators) */}
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-4 max-[300px]:mb-2 max-[300px]:gap-1">
               {/* Previous button */}
               <Button
                 variant="ghost"
@@ -395,23 +395,24 @@ export const ModulesScreen: React.FC = () => {
                   setCurrentPage(prev => Math.max(1, prev - 1));
                 }}
                 disabled={currentPage === 1}
-                className="p-2 opacity-70 hover:opacity-100"
+                className="p-2 opacity-70 hover:opacity-100 max-[300px]:p-1.5"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="w-4 h-4 max-[300px]:w-3 max-[300px]:h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M15 18l-6-6 6-6"/>
                 </svg>
               </Button>
 
               {/* Page bars */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 max-[300px]:gap-0.5">
                 {Array.from({ length: Math.min(totalPages, 8) }, (_, i) => {
                   let pageIndex;
-                  if (totalPages <= 8) {
+                  const maxPages = 8;
+                  if (totalPages <= maxPages) {
                     pageIndex = i;
                   } else {
                     // Smart pagination for many pages
-                    const start = Math.max(0, currentPage - 4);
-                    const end = Math.min(totalPages, start + 8);
+                    const start = Math.max(0, currentPage - Math.floor(maxPages/2));
+                    const end = Math.min(totalPages, start + maxPages);
                     pageIndex = start + i;
                     if (pageIndex >= end) return null;
                   }
@@ -432,6 +433,7 @@ export const ModulesScreen: React.FC = () => {
                           ? 'bg-telegram-accent shadow-glow scale-105' 
                           : 'bg-telegram-secondary-bg border border-telegram-hint/50 hover:bg-telegram-accent/60 hover:scale-105'
                         }
+                        max-[300px]:w-5 max-[300px]:h-0.5
                       `}
                     />
                   );
@@ -447,21 +449,21 @@ export const ModulesScreen: React.FC = () => {
                   setCurrentPage(prev => Math.min(totalPages, prev + 1));
                 }}
                 disabled={currentPage === totalPages}
-                className="p-2 opacity-70 hover:opacity-100"
+                className="p-2 opacity-70 hover:opacity-100 max-[300px]:p-1.5"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="w-4 h-4 max-[300px]:w-3 max-[300px]:h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </Button>
             </div>
             
             {/* Page counter (like step counter) */}
-            <div className="text-xs text-telegram-hint font-medium mb-2">
+            <div className="text-xs text-telegram-hint font-medium mb-2 max-[300px]:text-[10px] max-[300px]:mb-1">
               {currentPage} / {totalPages}
             </div>
             
             {/* Additional info */}
-            <div className="text-center">
+            <div className="text-center max-[300px]:hidden">
               <p className="text-telegram-hint text-xs opacity-70">
                 Всего модулей: {allModules.length}
               </p>
@@ -471,10 +473,10 @@ export const ModulesScreen: React.FC = () => {
 
         {/* Enhanced CTA if no subscription */}
         {!hasActiveSubscription() && (
-          <div className="mt-8 mb-4">
+          <div className="mt-8 mb-4 max-[300px]:mt-4 max-[300px]:mb-2">
             <div className="relative group">
               {/* Glow effect background */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-all duration-500 animate-pulse" />
+              <div className="absolute -inset-1 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-all duration-500 animate-pulse max-[300px]:rounded-xl max-[300px]:-inset-0.5" />
               
               {/* Main button */}
               <button
@@ -487,19 +489,19 @@ export const ModulesScreen: React.FC = () => {
                   setIsPaywallOpen(true);
                 }}
                 onMouseEnter={() => hapticFeedback.selection()}
-                className="relative w-full flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 hover:from-telegram-accent/90 hover:via-blue-500/90 hover:to-purple-500/90 text-white font-bold text-lg rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 backdrop-blur-sm group-hover:border-white/30"
+                className="relative w-full flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 hover:from-telegram-accent/90 hover:via-blue-500/90 hover:to-purple-500/90 text-white font-bold text-lg rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 backdrop-blur-sm group-hover:border-white/30 max-[300px]:px-4 max-[300px]:py-3 max-[300px]:gap-2 max-[300px]:text-base max-[300px]:rounded-xl"
               >
                 {/* Animated background pattern */}
-                <div className="absolute inset-0 rounded-2xl overflow-hidden">
+                <div className="absolute inset-0 rounded-2xl overflow-hidden max-[300px]:rounded-xl">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/10 transform -skew-x-12 group-hover:animate-shimmer" />
                 </div>
                 
                 {/* Content */}
-                <div className="relative flex items-center gap-3">
+                <div className="relative flex items-center gap-3 max-[300px]:gap-2">
                   {/* Animated icon */}
-                  <div className="flex items-center justify-center w-6 h-6">
+                  <div className="flex items-center justify-center w-6 h-6 max-[300px]:w-5 max-[300px]:h-5">
                     <svg 
-                      className="w-5 h-5 transform group-hover:rotate-12 transition-transform duration-300" 
+                      className="w-5 h-5 transform group-hover:rotate-12 transition-transform duration-300 max-[300px]:w-4 max-[300px]:h-4" 
                       viewBox="0 0 24 24" 
                       fill="none" 
                       stroke="currentColor" 
@@ -511,14 +513,14 @@ export const ModulesScreen: React.FC = () => {
                   </div>
                   
                   {/* Text */}
-                  <span className="tracking-wide">
+                  <span className="tracking-wide max-[300px]:text-sm max-[300px]:tracking-normal">
                     Открыть полный доступ
                   </span>
                   
                   {/* Arrow */}
-                  <div className="flex items-center justify-center w-5 h-5">
+                  <div className="flex items-center justify-center w-5 h-5 max-[300px]:w-4 max-[300px]:h-4">
                     <svg 
-                      className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300" 
+                      className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300 max-[300px]:w-3 max-[300px]:h-3" 
                       viewBox="0 0 24 24" 
                       fill="none" 
                       stroke="currentColor" 
@@ -531,24 +533,24 @@ export const ModulesScreen: React.FC = () => {
                 </div>
                 
                 {/* Multiple sparkle effects */}
-                <div className="absolute -top-2 -left-2 w-4 h-4">
+                <div className="absolute -top-2 -left-2 w-4 h-4 max-[300px]:-top-1 max-[300px]:-left-1 max-[300px]:w-3 max-[300px]:h-3">
                   <div className="absolute inset-0 bg-yellow-400 rounded-full animate-ping opacity-60" />
                   <div className="absolute inset-0 bg-yellow-300 rounded-full animate-pulse" />
                 </div>
                 
-                <div className="absolute -top-1 -right-3 w-3 h-3">
+                <div className="absolute -top-1 -right-3 w-3 h-3 max-[300px]:-top-0.5 max-[300px]:-right-2 max-[300px]:w-2 max-[300px]:h-2">
                   <div className="absolute inset-0 bg-pink-400 rounded-full animate-ping opacity-60 animation-delay-300" />
                   <div className="absolute inset-0 bg-pink-300 rounded-full animate-pulse animation-delay-300" />
                 </div>
                 
-                <div className="absolute -bottom-2 right-8 w-2 h-2">
+                <div className="absolute -bottom-2 right-8 w-2 h-2 max-[300px]:-bottom-1 max-[300px]:right-6 max-[300px]:w-1.5 max-[300px]:h-1.5">
                   <div className="absolute inset-0 bg-cyan-400 rounded-full animate-ping opacity-60 animation-delay-600" />
                   <div className="absolute inset-0 bg-cyan-300 rounded-full animate-pulse animation-delay-600" />
                 </div>
               </button>
               
               {/* Floating particles effect */}
-              <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-0 pointer-events-none max-[300px]:hidden">
                 <div className="absolute top-2 left-4 w-1 h-1 bg-white/40 rounded-full animate-bounce animation-delay-100" />
                 <div className="absolute top-4 right-6 w-1 h-1 bg-white/40 rounded-full animate-bounce animation-delay-300" />
                 <div className="absolute bottom-3 left-8 w-1 h-1 bg-white/40 rounded-full animate-bounce animation-delay-500" />
@@ -556,7 +558,7 @@ export const ModulesScreen: React.FC = () => {
             </div>
             
             {/* Subtitle */}
-            <p className="text-center text-telegram-hint text-sm mt-3 px-4">
+            <p className="text-center text-telegram-hint text-sm mt-3 px-4 max-[300px]:text-xs max-[300px]:mt-2 max-[300px]:px-2">
               ✨ Получите доступ ко всем модулям и функциям
             </p>
           </div>
@@ -572,10 +574,11 @@ export const ModulesScreen: React.FC = () => {
           ? 'translate-y-0 opacity-100 scale-100' 
           : 'translate-y-16 opacity-0 scale-95 pointer-events-none'
         }
+        max-[300px]:bottom-4
       `}>
         <div className="relative group">
           {/* Glow effect background - matching main CTA */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 rounded-full blur-lg opacity-30 group-hover:opacity-50 transition-all duration-500 animate-pulse" />
+          <div className="absolute -inset-1 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 rounded-full blur-lg opacity-30 group-hover:opacity-50 transition-all duration-500 animate-pulse max-[300px]:-inset-0.5" />
           
           {/* Main button - matching main CTA */}
           <button
@@ -588,7 +591,7 @@ export const ModulesScreen: React.FC = () => {
               setIsPaywallOpen(true);
             }}
             onMouseEnter={() => hapticFeedback.selection()}
-            className="relative flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 hover:from-telegram-accent/90 hover:via-blue-500/90 hover:to-purple-500/90 text-white font-bold text-base rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 backdrop-blur-sm group-hover:border-white/30 whitespace-nowrap"
+            className="relative flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 hover:from-telegram-accent/90 hover:via-blue-500/90 hover:to-purple-500/90 text-white font-bold text-base rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 backdrop-blur-sm group-hover:border-white/30 whitespace-nowrap max-[300px]:px-4 max-[300px]:py-2.5 max-[300px]:gap-1.5 max-[300px]:text-sm"
           >
             {/* Animated background pattern - matching main CTA */}
             <div className="absolute inset-0 rounded-full overflow-hidden">
@@ -596,11 +599,11 @@ export const ModulesScreen: React.FC = () => {
             </div>
             
             {/* Content */}
-            <div className="relative flex items-center gap-2">
+            <div className="relative flex items-center gap-2 max-[300px]:gap-1.5">
               {/* Animated icon - matching main CTA */}
-              <div className="flex items-center justify-center w-5 h-5">
+              <div className="flex items-center justify-center w-5 h-5 max-[300px]:w-4 max-[300px]:h-4">
                 <svg 
-                  className="w-4 h-4 transform group-hover:rotate-12 transition-transform duration-300" 
+                  className="w-4 h-4 transform group-hover:rotate-12 transition-transform duration-300 max-[300px]:w-3 max-[300px]:h-3" 
                   viewBox="0 0 24 24" 
                   fill="none" 
                   stroke="currentColor" 
@@ -612,14 +615,14 @@ export const ModulesScreen: React.FC = () => {
               </div>
               
               {/* Text */}
-              <span className="tracking-wide">
+              <span className="tracking-wide max-[300px]:text-xs max-[300px]:tracking-normal">
                 Открыть полный доступ
               </span>
               
               {/* Arrow - matching main CTA */}
-              <div className="flex items-center justify-center w-4 h-4">
+              <div className="flex items-center justify-center w-4 h-4 max-[300px]:w-3 max-[300px]:h-3">
                 <svg 
-                  className="w-3 h-3 transform group-hover:translate-x-1 transition-transform duration-300" 
+                  className="w-3 h-3 transform group-hover:translate-x-1 transition-transform duration-300 max-[300px]:w-2.5 max-[300px]:h-2.5" 
                   viewBox="0 0 24 24" 
                   fill="none" 
                   stroke="currentColor" 
@@ -632,24 +635,24 @@ export const ModulesScreen: React.FC = () => {
             </div>
             
             {/* Multiple sparkle effects - matching main CTA */}
-            <div className="absolute -top-2 -left-2 w-4 h-4">
+            <div className="absolute -top-2 -left-2 w-4 h-4 max-[300px]:-top-1 max-[300px]:-left-1 max-[300px]:w-3 max-[300px]:h-3">
               <div className="absolute inset-0 bg-yellow-400 rounded-full animate-ping opacity-60" />
               <div className="absolute inset-0 bg-yellow-300 rounded-full animate-pulse" />
             </div>
             
-            <div className="absolute -top-1 -right-3 w-3 h-3">
+            <div className="absolute -top-1 -right-3 w-3 h-3 max-[300px]:-top-0.5 max-[300px]:-right-2 max-[300px]:w-2 max-[300px]:h-2">
               <div className="absolute inset-0 bg-pink-400 rounded-full animate-ping opacity-60 animation-delay-300" />
               <div className="absolute inset-0 bg-pink-300 rounded-full animate-pulse animation-delay-300" />
             </div>
             
-            <div className="absolute -bottom-2 right-8 w-2 h-2">
+            <div className="absolute -bottom-2 right-8 w-2 h-2 max-[300px]:-bottom-1 max-[300px]:right-6 max-[300px]:w-1.5 max-[300px]:h-1.5">
               <div className="absolute inset-0 bg-cyan-400 rounded-full animate-ping opacity-60 animation-delay-600" />
               <div className="absolute inset-0 bg-cyan-300 rounded-full animate-pulse animation-delay-600" />
             </div>
           </button>
           
           {/* Floating particles effect - matching main CTA */}
-          <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 pointer-events-none max-[300px]:hidden">
             <div className="absolute top-2 left-4 w-1 h-1 bg-white/40 rounded-full animate-bounce animation-delay-100" />
             <div className="absolute top-4 right-6 w-1 h-1 bg-white/40 rounded-full animate-bounce animation-delay-300" />
             <div className="absolute bottom-3 left-8 w-1 h-1 bg-white/40 rounded-full animate-bounce animation-delay-500" />

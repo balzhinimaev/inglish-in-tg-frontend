@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Screen, Button, Loader, PaywallBottomSheet, TabSwitch, ModuleVocabulary } from '../components';
 import { useLessons } from '../services/content';
 import { useAppNavigation } from '../hooks/useAppNavigation';
@@ -21,10 +21,20 @@ const octagonalCardStyles = `
       0% 20px
     );
     position: relative;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.2);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, 
+      rgba(59, 130, 246, 0.12) 0%,
+      rgba(139, 92, 246, 0.08) 25%, 
+      rgba(16, 185, 129, 0.06) 50%,
+      rgba(245, 101, 101, 0.04) 75%,
+      rgba(251, 191, 36, 0.08) 100%
+    );
+    backdrop-filter: blur(12px);
+    border: none;
+    box-shadow: 
+      0 8px 32px rgba(59, 130, 246, 0.15),
+      0 4px 16px rgba(139, 92, 246, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 10;
   }
   
@@ -34,12 +44,13 @@ const octagonalCardStyles = `
     inset: 0;
     clip-path: inherit;
     background: linear-gradient(135deg, 
-      rgba(0,136,204,0.1) 0%, 
-      rgba(0,136,204,0.05) 50%, 
-      rgba(255,255,255,0.1) 100%
+      rgba(59, 130, 246, 0.2) 0%, 
+      rgba(139, 92, 246, 0.15) 30%, 
+      rgba(16, 185, 129, 0.12) 60%,
+      rgba(251, 191, 36, 0.18) 100%
     );
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.4s ease;
   }
   
   .octagonal-card:hover::before {
@@ -47,30 +58,90 @@ const octagonalCardStyles = `
   }
   
   .octagonal-card:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0,136,204,0.2), 0 8px 16px rgba(0,0,0,0.1);
-    border-color: rgba(0,136,204,0.3);
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 
+      0 25px 50px rgba(59, 130, 246, 0.25),
+      0 15px 35px rgba(139, 92, 246, 0.15),
+      0 8px 20px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    /* border removed */
   }
   
   .octagonal-card.completed {
-    background: linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(34,197,94,0.05) 100%);
-    border-color: rgba(34,197,94,0.3);
+    background: linear-gradient(135deg, 
+      rgba(34, 197, 94, 0.25) 0%, 
+      rgba(16, 185, 129, 0.18) 40%,
+      rgba(5, 150, 105, 0.12) 70%,
+      rgba(34, 197, 94, 0.08) 100%
+    );
+    /* border removed */
+    box-shadow: 
+      0 8px 32px rgba(34, 197, 94, 0.2),
+      0 4px 16px rgba(16, 185, 129, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+  
+  .octagonal-card.completed:hover {
+    box-shadow: 
+      0 25px 50px rgba(34, 197, 94, 0.3),
+      0 15px 35px rgba(16, 185, 129, 0.2),
+      0 8px 20px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    /* border removed */
   }
   
   .octagonal-card.in-progress {
-    background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(59,130,246,0.05) 100%);
-    border-color: rgba(59,130,246,0.3);
+    background: linear-gradient(135deg, 
+      rgba(59, 130, 246, 0.28) 0%, 
+      rgba(37, 99, 235, 0.22) 35%,
+      rgba(29, 78, 216, 0.16) 65%,
+      rgba(59, 130, 246, 0.12) 100%
+    );
+    /* border removed */
+    box-shadow: 
+      0 8px 32px rgba(59, 130, 246, 0.25),
+      0 4px 16px rgba(37, 99, 235, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
     animation: pulse-border 2s infinite;
   }
   
+  .octagonal-card.in-progress:hover {
+    box-shadow: 
+      0 25px 50px rgba(59, 130, 246, 0.35),
+      0 15px 35px rgba(37, 99, 235, 0.25),
+      0 8px 20px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    /* border removed */
+  }
+  
   .octagonal-card.locked {
-    background: linear-gradient(135deg, rgba(156,163,175,0.1) 0%, rgba(156,163,175,0.05) 100%);
-    border-color: rgba(156,163,175,0.2);
+    background: linear-gradient(135deg, 
+      rgba(156, 163, 175, 0.18) 0%, 
+      rgba(107, 114, 128, 0.12) 50%,
+      rgba(75, 85, 99, 0.08) 100%
+    );
+    /* border removed */
+    box-shadow: 
+      0 6px 24px rgba(156, 163, 175, 0.15),
+      0 3px 12px rgba(107, 114, 128, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
   
   @keyframes pulse-border {
-    0%, 100% { border-color: rgba(59,130,246,0.3); }
-    50% { border-color: rgba(59,130,246,0.6); }
+    0%, 100% { 
+      /* border removed */ 
+      box-shadow: 
+        0 8px 32px rgba(59, 130, 246, 0.25),
+        0 4px 16px rgba(37, 99, 235, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+    50% { 
+      /* border removed */ 
+      box-shadow: 
+        0 12px 40px rgba(59, 130, 246, 0.35),
+        0 6px 20px rgba(37, 99, 235, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
   }
   
   .connecting-line {
@@ -129,7 +200,7 @@ const octagonalCardStyles = `
   
   .connecting-line.completed::before {
     background: rgba(34,197,94,0.3);
-    border-color: rgba(34,197,94,0.6);
+    /* border removed */
   }
   
   .connecting-line.completed::after {
@@ -197,6 +268,27 @@ const octagonalCardStyles = `
   @keyframes shimmer {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+  }
+
+  /* Enhanced shimmer effect for progress bar */
+  @keyframes shimmer-progress {
+    0% { transform: translateX(-100%) skewX(-12deg); }
+    100% { transform: translateX(200%) skewX(-12deg); }
+  }
+
+  /* Floating animation for cards */
+  @keyframes float-card {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-2px); }
+  }
+
+  /* Add subtle floating animation to default cards */
+  .octagonal-card:not(.locked):not(.completed):not(.in-progress) {
+    animation: float-card 4s ease-in-out infinite;
+  }
+
+  .octagonal-card:not(.locked):not(.completed):not(.in-progress):nth-child(odd) {
+    animation-delay: -2s;
   }
 
   .task-card.flashcard {
@@ -267,6 +359,28 @@ const octagonalCardStyles = `
   .task-card-count:hover {
     transform: translateY(-6px) scale(1.2);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  }
+  
+  @keyframes slideDown {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
   }
 `;
 
@@ -552,6 +666,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
   moduleTitle = 'Модуль'
 }) => {
   const { navigateTo, setupBackButton } = useAppNavigation();
+  const screenRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'lessons' | 'vocabulary'>('lessons');
   const [selectedFilter, setSelectedFilter] = useState<LessonType | 'all'>('all');
   const [showPreview, setShowPreview] = useState<string | null>(null);
@@ -852,41 +967,61 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
     setupBackButton();
   }, [setupBackButton]);
 
-  // Sticky breadcrumbs scroll detection
+  // Smart sticky breadcrumbs with scroll direction detection
   useEffect(() => {
     let ticking = false;
-    let timeoutId: NodeJS.Timeout | undefined;
+    let hideTimeout: NodeJS.Timeout | undefined;
 
-    const handleScroll = () => {
+    const handleScroll = (e: Event) => {
       if (!ticking) {
         requestAnimationFrame(() => {
-          const scrollY = window.scrollY;
+          const target = e.target as HTMLElement;
+          const currentScrollY = target.scrollTop;
           
-          // Update last scroll position
-          setLastScrollY(scrollY);
+          // Determine scroll direction
+          const direction = currentScrollY > lastScrollY ? 'down' : 'up';
+          
+          // Show sticky when regular breadcrumbs are out of view
+          const threshold = 120;
           
           // Clear any existing timeout
-          clearTimeout(timeoutId);
-          
-          // Show sticky breadcrumbs when scrolled past original breadcrumbs
-          if (scrollY > 200) {
-            setShowStickyBreadcrumbs(true);
-          } else {
-            setShowStickyBreadcrumbs(false);
+          if (hideTimeout) {
+            clearTimeout(hideTimeout);
           }
           
+          if (currentScrollY < threshold) {
+            // Near top - hide immediately
+            setShowStickyBreadcrumbs(false);
+          } else {
+            // Past threshold
+            if (direction === 'down') {
+              // Scrolling down - show
+              setShowStickyBreadcrumbs(true);
+            } else if (direction === 'up') {
+              // Scrolling up - hide
+              setShowStickyBreadcrumbs(false);
+            }
+          }
+          
+          setLastScrollY(currentScrollY);
           ticking = false;
         });
         ticking = true;
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      clearTimeout(timeoutId);
-    };
+    // Use ref to access Screen element directly
+    const screenElement = screenRef.current;
+    if (screenElement) {
+      screenElement.addEventListener('scroll', handleScroll, { passive: true });
+      
+      return () => {
+        screenElement.removeEventListener('scroll', handleScroll);
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+        }
+      };
+    }
   }, [lastScrollY]);
 
   // Animate progress bar and counters
@@ -1113,12 +1248,122 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
   }
 
   return (
-    <Screen>
-      <div className="max-w-md mx-auto">
-        {/* Breadcrumb Navigation */}
+    <>
+      {/* Sticky Breadcrumb Navigation - full width at top of viewport */}
+      <div 
+        className={`
+          fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ease-out
+          ${showStickyBreadcrumbs 
+            ? 'bg-telegram-bg/95 backdrop-blur-md border-b border-telegram-hint/10 shadow-lg' 
+            : ''
+          }
+        `}
+        style={{
+          transform: showStickyBreadcrumbs 
+            ? 'translateY(0) scale(1)' 
+            : 'translateY(-110%) scale(0.95)',
+          opacity: showStickyBreadcrumbs ? 1 : 0,
+          marginBottom: 0,
+          transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)', // Spring-like easing
+          transformOrigin: 'center top',
+          pointerEvents: showStickyBreadcrumbs ? 'auto' : 'none'
+        }}
+      >
+          <div className={`w-full transition-all duration-300 ${showStickyBreadcrumbs ? 'py-3' : 'py-0'}`}>
+            <div className="max-w-md mx-auto px-4">
+              <div className="flex items-center gap-1 text-sm min-w-0">
+              {/* Modules Link - Compact on small screens */}
+              <button
+                onClick={() => {
+                  hapticFeedback.selection();
+                  tracking.custom('sticky_breadcrumb_modules_clicked', { 
+                    page: 'lessons_list',
+                    module: moduleRef 
+                  });
+                  navigateTo(APP_STATES.MODULES);
+                }}
+                className="flex items-center gap-0.5 text-telegram-accent hover:text-telegram-accent/80 transition-all duration-200 hover:scale-105 group shrink-0"
+              >
+                <svg 
+                  className="w-4 h-4 transform group-hover:-translate-x-0.5 transition-transform duration-200" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                >
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+                <span className="font-medium hidden xs:inline">Модули</span>
+              </button>
+              
+              {/* Separator */}
+              <div className="flex items-center shrink-0">
+                <svg 
+                  className="w-3 h-3 text-telegram-hint" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                >
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </div>
+              
+              {/* Current Module - Truncated */}
+              <div className="flex items-center gap-0.5 text-telegram-text min-w-0">
+                <svg 
+                  className="w-4 h-4 text-telegram-hint shrink-0" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                </svg>
+                <span className="font-medium text-telegram-text/80 truncate max-w-[80px] xs:max-w-[120px] sm:max-w-[150px]">
+                  {moduleTitle}
+                </span>
+              </div>
+              
+              {/* Separator */}
+              <div className="flex items-center shrink-0">
+                <svg 
+                  className="w-3 h-3 text-telegram-hint" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                >
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </div>
+              
+              {/* Current Page - Compact on small screens */}
+              <div className="flex items-center gap-0.5 text-telegram-hint shrink-0">
+                <svg 
+                  className="w-4 h-4" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                >
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                <span className="font-medium hidden xs:inline">Уроки</span>
+              </div>
+            </div>
+          </div>
+          </div>
+      </div>
+
+      <Screen ref={screenRef}>
+        <div className="max-w-md mx-auto min-w-0">
+        {/* Regular Breadcrumb Navigation */}
         <div className="mb-4">
-          <div className="flex items-center gap-2 text-sm">
-            {/* Modules Link */}
+          <div className="flex items-center gap-1 text-sm min-w-0">
+            {/* Modules Link - Compact on small screens */}
             <button
               onClick={() => {
                 hapticFeedback.selection();
@@ -1128,7 +1373,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
                 });
                 navigateTo(APP_STATES.MODULES);
               }}
-              className="flex items-center gap-1 text-telegram-accent hover:text-telegram-accent/80 transition-all duration-200 hover:scale-105 group"
+              className="flex items-center gap-0.5 text-telegram-accent hover:text-telegram-accent/80 transition-all duration-200 hover:scale-105 group shrink-0"
             >
               <svg 
                 className="w-4 h-4 transform group-hover:-translate-x-0.5 transition-transform duration-200" 
@@ -1140,13 +1385,13 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
               </svg>
-              <span className="font-medium">Модули</span>
+              <span className="font-medium hidden xs:inline">Модули</span>
             </button>
             
             {/* Separator */}
-            <div className="flex items-center">
+            <div className="flex items-center shrink-0">
               <svg 
-                className="w-4 h-4 text-telegram-hint animate-pulse" 
+                className="w-3 h-3 text-telegram-hint animate-pulse" 
                 viewBox="0 0 24 24" 
                 fill="none" 
                 stroke="currentColor" 
@@ -1156,10 +1401,10 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
               </svg>
             </div>
             
-            {/* Current Module */}
-            <div className="flex items-center gap-1 text-telegram-text">
+            {/* Current Module - Truncated */}
+            <div className="flex items-center gap-0.5 text-telegram-text min-w-0">
               <svg 
-                className="w-4 h-4 text-telegram-hint" 
+                className="w-4 h-4 text-telegram-hint shrink-0" 
                 viewBox="0 0 24 24" 
                 fill="none" 
                 stroke="currentColor" 
@@ -1168,15 +1413,15 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14,2 14,8 20,8"/>
               </svg>
-              <span className="font-medium text-telegram-text/80">
+              <span className="font-medium text-telegram-text/80 truncate max-w-[100px] xs:max-w-[140px] sm:max-w-[180px]">
                 {moduleTitle}
               </span>
             </div>
             
             {/* Separator */}
-            <div className="flex items-center">
+            <div className="flex items-center shrink-0">
               <svg 
-                className="w-4 h-4 text-telegram-hint animate-pulse animation-delay-200" 
+                className="w-3 h-3 text-telegram-hint animate-pulse animation-delay-200" 
                 viewBox="0 0 24 24" 
                 fill="none" 
                 stroke="currentColor" 
@@ -1186,8 +1431,8 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
               </svg>
             </div>
             
-            {/* Current Page */}
-            <div className="flex items-center gap-1 text-telegram-hint">
+            {/* Current Page - Compact on small screens */}
+            <div className="flex items-center gap-0.5 text-telegram-hint shrink-0">
               <svg 
                 className="w-4 h-4" 
                 viewBox="0 0 24 24" 
@@ -1197,7 +1442,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
               >
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
               </svg>
-              <span className="font-medium">Уроки</span>
+              <span className="font-medium hidden xs:inline">Уроки</span>
             </div>
           </div>
           
@@ -1205,112 +1450,9 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
           <div className="mt-3 h-px bg-gradient-to-r from-transparent via-telegram-hint/20 to-transparent"></div>
         </div>
 
-        {/* Sticky Breadcrumbs */}
-        <div className={`
-          fixed top-0 left-0 right-0 z-50 transition-transform duration-500 ease-out
-          ${showStickyBreadcrumbs 
-            ? 'translate-y-0' 
-            : '-translate-y-full pointer-events-none'
-          }
-        `}>
-          <div className={`
-            bg-telegram-bg/95 backdrop-blur-md transition-all duration-300 ease-out
-            ${showStickyBreadcrumbs 
-              ? 'border-b border-telegram-hint/10 shadow-lg' 
-              : ''
-            }
-          `}>
-            <div className="max-w-md mx-auto px-4 py-3">
-              <div className="flex items-center gap-2 text-sm">
-                {/* Modules Link */}
-                <button
-                  onClick={() => {
-                    hapticFeedback.selection();
-                    tracking.custom('sticky_breadcrumb_modules_clicked', { 
-                      page: 'lessons_list',
-                      module: moduleRef 
-                    });
-                    navigateTo(APP_STATES.MODULES);
-                  }}
-                  className="flex items-center gap-1 text-telegram-accent hover:text-telegram-accent/80 transition-all duration-200 hover:scale-105 group"
-                >
-                  <svg 
-                    className="w-4 h-4 transform group-hover:-translate-x-0.5 transition-transform duration-200" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2"
-                  >
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                  </svg>
-                  <span className="font-medium">Модули</span>
-                </button>
-                
-                {/* Separator */}
-                <div className="flex items-center">
-                  <svg 
-                    className="w-4 h-4 text-telegram-hint" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2"
-                  >
-                    <path d="M9 18l6-6-6-6"/>
-                  </svg>
-                </div>
-                
-                {/* Current Module */}
-                <div className="flex items-center gap-1 text-telegram-text">
-                  <svg 
-                    className="w-4 h-4 text-telegram-hint" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2"
-                  >
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14,2 14,8 20,8"/>
-                  </svg>
-                  <span className="font-medium text-telegram-text/80 truncate max-w-[120px]">
-                    {moduleTitle}
-                  </span>
-                </div>
-                
-                {/* Separator */}
-                <div className="flex items-center">
-                  <svg 
-                    className="w-4 h-4 text-telegram-hint" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2"
-                  >
-                    <path d="M9 18l6-6-6-6"/>
-                  </svg>
-                </div>
-                
-                {/* Current Page */}
-                <div className="flex items-center gap-1 text-telegram-hint">
-                  <svg 
-                    className="w-4 h-4" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2"
-                  >
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                  <span className="font-medium">Уроки</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Header with Stats */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-telegram-text mb-3">{moduleTitle}</h1>
+        <div className="text-center mb-3">
+          <h1 className="text-2xl font-bold text-telegram-text mb-2">{moduleTitle}</h1>
           
           {/* Module Progress Stats */}
           <div className="bg-telegram-secondary-bg rounded-xl p-4 mb-4">
@@ -1351,7 +1493,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
                   style={{ width: `${animatedProgress}%` }}
                 >
                   {/* Shine effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 animate-shimmer"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer-progress" style={{animationDuration: '2s', animationIterationCount: 'infinite'}}></div>
                   
                   {/* Glow effect */}
                   <div className="absolute inset-0 bg-gradient-to-r from-telegram-accent to-green-500 rounded-full blur-sm opacity-50"></div>
@@ -1433,8 +1575,8 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
         {activeTab === 'lessons' && (
           <>
             {/* Filters */}
-            <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-2">
+            <div className="mb-6 -mx-2 px-2">
+          <div className="flex items-center gap-1.5 xs:gap-2 mb-3 overflow-x-auto pb-2">
             {filterOptions.map(option => (
               <button
                 key={option.key}
@@ -1443,26 +1585,36 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
                   setSelectedFilter(option.key);
                 }}
                 className={`
-                  flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all
+                  flex items-center gap-0.5 xs:gap-1 px-2 xs:px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0
                   ${selectedFilter === option.key 
                     ? 'bg-telegram-accent text-white shadow-lg' 
                     : 'bg-telegram-secondary-bg text-telegram-hint hover:bg-telegram-card-bg'
                   }
                 `}
               >
-                <span>{option.icon}</span>
-                <span>{option.label}</span>
+                <span className="text-xs">{option.icon}</span>
+                <span className="hidden xs:inline">{option.label}</span>
+                <span className="inline xs:hidden text-xs">
+                  {option.key === 'all' ? 'Все' :
+                   option.key === 'conversation' ? 'Разг.' :
+                   option.key === 'vocabulary' ? 'Слов.' :
+                   option.key === 'listening' ? 'Ауд.' :
+                   option.key === 'grammar' ? 'Грам.' :
+                   option.key === 'speaking' ? 'Гов.' :
+                   option.key === 'reading' ? 'Чт.' :
+                   option.key === 'writing' ? 'Пис.' : option.label}
+                </span>
               </button>
             ))}
           </div>
           
-          {/* Sort Options */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-telegram-hint">Сортировка:</span>
+          {/* Sort Options - Compact for mobile */}
+          <div className="flex items-center gap-1 text-xs overflow-x-auto pb-1 -mx-1 px-1">
+            <span className="text-telegram-hint shrink-0 hidden xs:inline">Сортировка:</span>
             {[
-              { key: 'order', label: 'По порядку' },
-              { key: 'difficulty', label: 'По сложности' },
-              { key: 'duration', label: 'По времени' }
+              { key: 'order', label: 'По порядку', shortLabel: 'Порядок' },
+              { key: 'difficulty', label: 'По сложности', shortLabel: 'Сложность' },
+              { key: 'duration', label: 'По времени', shortLabel: 'Время' }
             ].map(option => (
               <button
                 key={option.key}
@@ -1478,17 +1630,18 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
                   }
                 }}
                 className={`
-                  flex items-center gap-1 px-2 py-1 rounded transition-all
+                  flex items-center gap-0.5 px-1.5 xs:px-2 py-1 rounded transition-all whitespace-nowrap shrink-0
                   ${sortBy === option.key 
-                    ? 'text-telegram-accent font-medium' 
-                    : 'text-telegram-hint hover:text-telegram-text'
+                    ? 'text-telegram-accent font-medium bg-telegram-accent/10' 
+                    : 'text-telegram-hint hover:text-telegram-text hover:bg-telegram-secondary-bg'
                   }
                 `}
               >
-                <span>{option.label}</span>
+                <span className="hidden xs:inline">{option.label}</span>
+                <span className="inline xs:hidden">{option.shortLabel}</span>
                 {sortBy === option.key && (
                   <svg 
-                    className={`w-3 h-3 transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
+                    className={`w-2.5 h-2.5 xs:w-3 xs:h-3 transition-transform ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
                     viewBox="0 0 24 24" 
                     fill="none" 
                     stroke="currentColor" 
@@ -1530,7 +1683,6 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
                     ${lesson.isLocked ? 'locked opacity-70 cursor-pointer hover:opacity-80 transition-opacity' : ''}
                     ${isCompleted ? 'completed' : ''}
                     ${isInProgress ? 'in-progress' : ''}
-                    ${isPreviewOpen ? 'ring-2 ring-telegram-accent ring-opacity-60' : ''}
                   `}
                   onClick={lesson.isLocked ? () => handleLessonClick(lesson) : undefined}
                 >
@@ -1775,7 +1927,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
         )}
 
         {/* Back to modules button at bottom */}
-        <div className="mt-12 mb-6">
+        <div className="mt-12 mb-6 px-2">
           <div className="relative group">
             {/* Subtle glow effect */}
             <div className="absolute -inset-1 bg-gradient-to-r from-telegram-hint/10 via-telegram-secondary-bg/20 to-telegram-hint/10 rounded-2xl blur-lg opacity-50 group-hover:opacity-80 transition-all duration-500" />
@@ -1791,7 +1943,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
                 navigateTo(APP_STATES.MODULES);
               }}
               onMouseEnter={() => hapticFeedback.selection()}
-              className="relative w-full flex items-center justify-center gap-3 px-6 py-4 bg-telegram-card-bg hover:bg-telegram-secondary-bg text-telegram-text font-medium text-base rounded-2xl shadow-md hover:shadow-lg transform hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 ease-out border border-telegram-hint/15 hover:border-telegram-hint/30 backdrop-blur-sm"
+              className="relative w-full flex items-center justify-center gap-2 xs:gap-3 px-4 xs:px-6 py-4 bg-telegram-card-bg hover:bg-telegram-secondary-bg text-telegram-text font-medium text-sm xs:text-base rounded-2xl shadow-md hover:shadow-lg transform hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 ease-out border border-telegram-hint/15 hover:border-telegram-hint/30 backdrop-blur-sm min-w-0"
             >
               {/* Subtle background pattern */}
               <div className="absolute inset-0 rounded-2xl overflow-hidden">
@@ -1799,11 +1951,11 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
               </div>
               
               {/* Content */}
-              <div className="relative flex items-center gap-3">
+              <div className="relative flex items-center gap-2 xs:gap-3 min-w-0">
                 {/* Back arrow */}
-                <div className="flex items-center justify-center w-5 h-5">
+                <div className="flex items-center justify-center w-4 h-4 xs:w-5 xs:h-5 shrink-0">
                   <svg 
-                    className="w-4 h-4 transform group-hover:-translate-x-0.5 transition-transform duration-300" 
+                    className="w-3 h-3 xs:w-4 xs:h-4 transform group-hover:-translate-x-0.5 transition-transform duration-300" 
                     viewBox="0 0 24 24" 
                     fill="none" 
                     stroke="currentColor" 
@@ -1815,14 +1967,14 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
                 </div>
                 
                 {/* Text */}
-                <span className="tracking-wide">
+                <span className="tracking-wide whitespace-nowrap">
                   Вернуться к модулям
                 </span>
                 
                 {/* Modules icon */}
-                <div className="flex items-center justify-center w-5 h-5 opacity-70">
+                <div className="flex items-center justify-center w-4 h-4 xs:w-5 xs:h-5 opacity-70 shrink-0">
                   <svg 
-                    className="w-4 h-4" 
+                    className="w-3 h-3 xs:w-4 xs:h-4" 
                     viewBox="0 0 24 24" 
                     fill="none" 
                     stroke="currentColor" 
@@ -1837,12 +1989,14 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
           </div>
         </div>
 
-        {/* Paywall Bottom Sheet */}
-        <PaywallBottomSheet
-          isOpen={isPaywallOpen}
-          onClose={() => setIsPaywallOpen(false)}
-        />
       </div>
       </Screen>
+
+      {/* Paywall Bottom Sheet */}
+      <PaywallBottomSheet
+        isOpen={isPaywallOpen}
+        onClose={() => setIsPaywallOpen(false)}
+      />
+    </>
   );
 };

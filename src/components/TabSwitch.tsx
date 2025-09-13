@@ -34,7 +34,7 @@ export const TabSwitch: React.FC<TabSwitchProps> = ({
             className={`
               flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
               ${activeTab === tab.key 
-                ? 'bg-white text-telegram-text shadow-sm' 
+                ? 'bg-telegram-accent text-white shadow-sm' 
                 : 'text-telegram-hint hover:text-telegram-text'
               }
               ${index === 0 ? 'rounded-l-xl' : ''}
