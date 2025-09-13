@@ -1,0 +1,441 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Modern Neumorphism Theme Variables - Override Telegram defaults */
+:root {
+  /* Base colors - Fixed dark theme */
+  --tg-theme-bg-color: #121212 !important;
+  --tg-theme-text-color: #ffffff !important;
+  --tg-theme-hint-color: #b0b0b0 !important;
+  --tg-theme-secondary-bg-color: #1e1e1e !important;
+  --tg-theme-card-bg-color: #222222 !important;
+  
+  /* Accent colors - Soft blue/purple theme */
+  --tg-theme-button-color: #6366f1 !important;
+  --tg-theme-button-text-color: #ffffff !important;
+  --tg-theme-accent-color: #6366f1 !important;
+  --tg-theme-accent-secondary: #8b5cf6 !important;
+  --tg-theme-accent-tertiary: #06b6d4 !important;
+  
+  /* Interactive states */
+  --tg-theme-link-color: #6366f1 !important;
+  --tg-theme-accent-text-color: #6366f1 !important;
+  --tg-theme-section-header-text-color: #6366f1 !important;
+  --tg-theme-destructive-text-color: #ff6b6b !important;
+  
+  /* Legacy compatibility */
+  --tg-theme-header-bg-color: #121212 !important;
+  --tg-theme-section-bg-color: #1e1e1e !important;
+  --tg-theme-subtitle-text-color: #b0b0b0 !important;
+  
+  /* Neumorphism shadows */
+  --shadow-neumorphism-raised: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-neumorphism-pressed: inset 0 2px 4px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.05);
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+  --shadow-glow-hover: 0 0 30px rgba(99, 102, 241, 0.5);
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(30, 30, 30, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-backdrop: blur(12px);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', 'Manrope',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, var(--tg-theme-bg-color) 0%, #1a1a1a 100%) !important;
+  color: var(--tg-theme-text-color) !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100vh;
+  /* Force override of Telegram theme colors */
+  background-color: var(--tg-theme-bg-color) !important;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Disable text selection */
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection for inputs and content areas */
+input,
+textarea,
+.selectable {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.5);
+}
+
+/* Modern UI utilities */
+.neumorphism-raised {
+  background: var(--tg-theme-card-bg-color);
+  box-shadow: var(--shadow-neumorphism-raised);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.neumorphism-pressed {
+  background: var(--tg-theme-secondary-bg-color);
+  box-shadow: var(--shadow-neumorphism-pressed);
+}
+
+.glass-effect {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+}
+
+.glow-effect {
+  box-shadow: var(--shadow-glow);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-effect:hover {
+  box-shadow: var(--shadow-glow-hover);
+}
+
+/* Button active states with enhanced effects */
+.btn-active:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+.btn-active:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-glow {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+/* Force Telegram WebApp theme override */
+html {
+  color-scheme: dark !important;
+  font-size: 90%;
+}
+
+/* Responsive font sizing for very narrow screens */
+@media (max-width: 315px) {
+  html {
+    font-size: 80%;
+  }
+}
+
+/* Override Telegram's dynamic theme variables */
+.tg-viewport,
+.tg-root,
+body.tg-body-wrap {
+  background: var(--tg-theme-bg-color) !important;
+  color: var(--tg-theme-text-color) !important;
+}
+
+/* Ensure miniapp container uses our theme */
+.miniapp-container {
+  background: var(--tg-theme-bg-color) !important;
+  color: var(--tg-theme-text-color) !important;
+  min-height: 100vh;
+}
+
+/* Override any system theme preferences */
+@media (prefers-color-scheme: light) {
+  :root {
+    --tg-theme-bg-color: #121212 !important;
+    --tg-theme-text-color: #ffffff !important;
+    --tg-theme-hint-color: #b0b0b0 !important;
+    --tg-theme-secondary-bg-color: #1e1e1e !important;
+    --tg-theme-card-bg-color: #222222 !important;
+  }
+}
+
+/* Additional forced dark theme styles */
+* {
+  scrollbar-color: rgba(99, 102, 241, 0.3) transparent !important;
+}
+
+/* Telegram specific overrides */
+.js-theme_auto,
+.js-theme_light,
+.js-theme_dark {
+  background: var(--tg-theme-bg-color) !important;
+  color: var(--tg-theme-text-color) !important;
+}
+
+/* Enhanced CTA Button Animations */
+@keyframes shimmer {
+  0% { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+/* Progress bar specific animations */
+@keyframes progress-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.6), 0 0 30px rgba(99, 102, 241, 0.4);
+  }
+}
+
+.animate-progress-glow {
+  animation: progress-glow 2s ease-in-out infinite;
+}
+
+/* Shake animation for locked lessons */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+.animate-shake {
+  animation: shake 0.6s ease-in-out;
+}
+
+/* Animation delays for staggered effects */
+.animation-delay-100 {
+  animation-delay: 0.1s;
+}
+
+.animation-delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}
+
+.animation-delay-600 {
+  animation-delay: 0.6s;
+}
+
+/* Enhanced shadow for premium buttons */
+.shadow-3xl {
+  box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Glow effect for premium elements */
+.shadow-glow {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 0 40px rgba(99, 102, 241, 0.2);
+}
+
+/* Bottom sheet smooth spring animation */
+.bottom-sheet-enter {
+  transition: transform 0.6s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.bottom-sheet-exit {
+  transition: transform 0.4s cubic-bezier(0.55, 0.06, 0.68, 0.19);
+}
+
+/* Premium button animations */
+@keyframes pulse-slow {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.95;
+    transform: scale(1.005);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+/* Enhanced shimmer effect */
+@keyframes shimmer-enhanced {
+  0% { 
+    transform: translateX(-100%) skewX(-12deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% { 
+    transform: translateX(200%) skewX(-12deg);
+    opacity: 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer-enhanced 2.5s ease-in-out infinite;
+}
+
+/* Super attractive button animations */
+@keyframes floating-particles {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateY(-8px) rotate(90deg);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-4px) rotate(180deg);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translateY(-12px) rotate(270deg);
+    opacity: 1;
+  }
+}
+
+@keyframes sparkle-blink {
+  0%, 50%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  25%, 75% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes lightning-bounce {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  50% {
+    transform: scale(1.05) rotate(5deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(-3deg);
+  }
+}
+
+@keyframes triple-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 20px rgba(99, 102, 241, 0.4),
+      0 0 40px rgba(139, 92, 246, 0.3),
+      0 0 60px rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 30px rgba(99, 102, 241, 0.6),
+      0 0 60px rgba(139, 92, 246, 0.5),
+      0 0 90px rgba(59, 130, 246, 0.4);
+  }
+}
+
+/* Animation classes */
+.animate-floating-particles {
+  animation: floating-particles 2.5s ease-in-out infinite;
+}
+
+.animate-sparkle-blink {
+  animation: sparkle-blink 1.5s ease-in-out infinite;
+}
+
+.animate-lightning-bounce {
+  animation: lightning-bounce 2s ease-in-out infinite;
+}
+
+.animate-triple-gradient {
+  background-size: 200% 200%;
+  animation: triple-gradient-shift 3s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Text shadow effect */
+.text-shadow-glow {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+/* Fade in animation for task elements */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Scale in animation for interactive elements */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out forwards;
+}
