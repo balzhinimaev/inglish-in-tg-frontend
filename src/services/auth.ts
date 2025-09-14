@@ -1,22 +1,105 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import apiClient from './api';
 import { API_ENDPOINTS } from '../utils/constants';
-import { AuthVerifyResponse, OnboardingCompleteRequest, OnboardingStatusResponse, SaveReminderSettingsRequest } from '../types';
+import { AuthVerifyResponse, OnboardingCompleteRequest, OnboardingStatusResponse, SaveReminderSettingsRequest, User, JwtPayload } from '../types';
 import { LearningGoal, DailyGoal } from '../utils/constants';
 import { getTelegramInitData } from '../utils/telegram';
 
 /**
- * Verify user authentication with Telegram initData
+ * JWT Token utilities
+ */
+export const jwtUtils = {
+  /**
+   * Parse JWT token and extract payload
+   */
+  parseToken: (token: string): JwtPayload | null => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error('Failed to parse JWT token:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Check if JWT token is expired
+   */
+  isTokenExpired: (token: string): boolean => {
+    const payload = jwtUtils.parseToken(token);
+    if (!payload) return true;
+    
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp < now;
+  },
+
+  /**
+   * Get token from localStorage
+   */
+  getStoredToken: (): string | null => {
+    return localStorage.getItem('accessToken');
+  },
+
+  /**
+   * Store token in localStorage
+   */
+  storeToken: (token: string): void => {
+    localStorage.setItem('accessToken', token);
+  },
+
+  /**
+   * Remove token from localStorage
+   */
+  removeToken: (): void => {
+    localStorage.removeItem('accessToken');
+  },
+};
+
+/**
+ * Convert API user to frontend User type
+ */
+const convertApiUserToUser = (apiUser: any): User => {
+  return {
+    userId: apiUser.userId,
+    firstName: apiUser.firstName,
+    lastName: apiUser.lastName,
+    username: apiUser.username,
+    languageCode: apiUser.languageCode,
+    photoUrl: apiUser.photoUrl,
+    onboardingCompletedAt: apiUser.onboardingCompletedAt ? new Date(apiUser.onboardingCompletedAt) : undefined,
+    proficiencyLevel: apiUser.proficiencyLevel,
+    firstUtm: apiUser.firstUtm,
+    lastUtm: apiUser.lastUtm,
+    isFirstOpen: apiUser.isFirstOpen,
+  };
+};
+
+/**
+ * Verify user authentication with Telegram initData and get JWT token
  */
 export const useVerifyUser = () => {
   return useQuery({
     queryKey: ['auth', 'verify'],
     queryFn: async (): Promise<AuthVerifyResponse> => {
       const initData = getTelegramInitData();
-      const endpoint = `${API_ENDPOINTS.AUTH.VERIFY}${initData ? `?${initData}` : ''}`;
+      const endpoint = `${API_ENDPOINTS.AUTH.VERIFY}${initData ? `?initData=${encodeURIComponent(initData)}` : ''}`;
       const response = await apiClient.get(endpoint);
 
-      return response.data as AuthVerifyResponse;
+      const data = response.data as AuthVerifyResponse;
+      
+      // Store JWT token if received
+      if (data.accessToken) {
+        jwtUtils.storeToken(data.accessToken);
+      }
+
+      return data;
     },
     staleTime: 0, // Always refetch on mount
     retry: 3,
@@ -24,6 +107,21 @@ export const useVerifyUser = () => {
     // Ensure we only call verify when Telegram initData is present
     enabled: !!getTelegramInitData(),
   });
+};
+
+/**
+ * Hook to handle authentication flow
+ */
+export const useAuth = () => {
+  const { data: authData, isLoading, error } = useVerifyUser();
+  
+  return {
+    authData,
+    isLoading,
+    error,
+    isAuthenticated: !!authData?.accessToken,
+    user: authData?.user ? convertApiUserToUser(authData.user) : null,
+  };
 };
 
 /**

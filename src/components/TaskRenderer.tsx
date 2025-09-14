@@ -99,12 +99,12 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({
               <Button
                 fullWidth
                 onClick={() => setIsRevealed(true)}
-                className="bg-telegram-accent hover:bg-telegram-accent/90 text-white hover:scale-105 transition-all duration-200 hover:shadow-lg"
+                className="bg-telegram-accent hover:bg-telegram-accent/90 text-white hover:scale-105 transition-all duration-200 hover:shadow-lg group"
               >
                 <span className="flex items-center justify-center gap-2">
                   <span>Показать перевод</span>
-                  <svg className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M15 18l-6-6 6-6"/>
+                  <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
                   </svg>
                 </span>
               </Button>

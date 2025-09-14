@@ -17,7 +17,7 @@ export const API_ENDPOINTS = {
     LESSON: '/content/lesson1',
     LESSONS: '/content/lessons', // legacy list endpoint (may return {lessons} wrapper)
     LESSON_DETAIL_V2: '/content/v2/lessons', // detail by lessonRef
-    MODULES: '/content/v2/modules', // modules root; lessons list: /content/v2/modules/:moduleRef/lessons
+    MODULES: '/content/modules', // Updated to match backend
     VOCABULARY: '/content/vocabulary',
     PAYWALL: '/content/paywall',
     ONBOARDING: '/content/onboarding',
@@ -30,6 +30,12 @@ export const API_ENDPOINTS = {
   },
   PAYMENTS: {
     WEBHOOK: '/payments/webhook',
+  },
+  LEADS: {
+    BOT_START: '/leads/bot_start',
+  },
+  PROGRESS: {
+    SESSION: '/progress/session',
   },
 } as const;
 

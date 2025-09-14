@@ -1,18 +1,17 @@
 import React, { useEffect } from 'react';
 import { Screen, Loader } from '../components';
 import { useUserStore } from '../store/user';
-import { useVerifyUser } from '../services/auth';
+import { useAuth } from '../services/auth';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { APP_STATES } from '../utils/constants';
-import { getTelegramUser, isDesktopBrowser } from '../utils/telegram';
-import { User } from '../types';
+import { isDesktopBrowser } from '../utils/telegram';
 
 export const LoaderScreen: React.FC = () => {
-  const { setUser, setLoading, setError } = useUserStore();
+  const { setLoading, setError, login } = useUserStore();
   const { navigateTo } = useAppNavigation();
   
   // Always call hooks first (React rules)
-  const { data: authData, isLoading, error } = useVerifyUser();
+  const { authData, isLoading, error, isAuthenticated, user } = useAuth();
   
   // Check desktop after hooks
   const isDesktop = isDesktopBrowser();
@@ -49,25 +48,9 @@ export const LoaderScreen: React.FC = () => {
       return;
     }
 
-    if (authData) {
-      // Получаем данные пользователя из Telegram
-      const telegramUser = getTelegramUser();
-      
-      // Создаем объект User, комбинируя данные из Telegram и backend
-      const user: User = {
-        userId: authData.userId,
-        firstName: telegramUser?.first_name,
-        lastName: telegramUser?.last_name,
-        username: telegramUser?.username,
-        languageCode: telegramUser?.language_code,
-        onboardingCompletedAt: authData.onboardingCompleted ? new Date() : undefined,
-        proficiencyLevel: authData.proficiencyLevel,
-        firstUtm: authData.utm,
-        lastUtm: authData.utm,
-        isFirstOpen: authData.isFirstOpen,
-      };
-
-      setUser(user);
+    if (authData && isAuthenticated && user) {
+      // Login user with JWT token
+      login(user, authData.accessToken);
       setError(null);
 
       // Определяем следующий экран на основе состояния онбординга
@@ -78,7 +61,7 @@ export const LoaderScreen: React.FC = () => {
         navigateTo(APP_STATES.MODULES);
       }
     }
-  }, [authData, error, setUser, setError, navigateTo, isDesktop]);
+  }, [authData, error, isAuthenticated, user, login, setError, navigateTo, isDesktop]);
 
   // Don't show loader if showing QR screen
   const shouldShowQR = isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user;

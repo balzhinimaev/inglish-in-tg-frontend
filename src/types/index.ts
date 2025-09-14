@@ -13,6 +13,22 @@ export interface User {
   isFirstOpen?: boolean;             // Первый ли это визит (deprecated, will be removed)
 }
 
+// JWT Token types
+export interface JwtPayload {
+  userId: number;
+  iat: number;
+  exp: number;
+}
+
+// Auth state types
+export interface AuthState {
+  isAuthenticated: boolean;
+  accessToken: string | null;
+  user: User | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
 // Entitlement types
 export interface Entitlement {
   userId: number;
@@ -90,6 +106,8 @@ export type AppState = 'loading' | 'desktop_bridge' | 'onboarding' | 'modules' |
 // API Response types
 export interface AuthVerifyResponse {
   userId: number;
+  accessToken: string;
+  user: ApiUser;
   isFirstOpen: boolean;
   utm?: Record<string, string>;
   onboardingCompleted: boolean;
