@@ -88,9 +88,7 @@ export const useVerifyUser = () => {
   return useQuery({
     queryKey: ['auth', 'verify'],
     queryFn: async (): Promise<AuthVerifyResponse> => {
-      const initData = getTelegramInitData();
-      const endpoint = `${API_ENDPOINTS.AUTH.VERIFY}${initData ? `?initData=${encodeURIComponent(initData)}` : ''}`;
-      const response = await apiClient.get(endpoint);
+      const response = await apiClient.get(API_ENDPOINTS.AUTH.VERIFY);
 
       const data = response.data as AuthVerifyResponse;
       

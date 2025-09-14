@@ -25,7 +25,9 @@ apiClient.interceptors.request.use(
     if (isAuthVerify) {
       const initData = getTelegramInitData();
       if (initData) {
-        config.params = { ...config.params, initData };
+        // Add initData directly to URL to avoid double encoding
+        const separator = config.url?.includes('?') ? '&' : '?';
+        config.url = `${config.url}${separator}initData=${encodeURIComponent(initData)}`;
       }
     }
     // For public endpoints, no auth needed
