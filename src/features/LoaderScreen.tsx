@@ -11,39 +11,34 @@ export const LoaderScreen: React.FC = () => {
   const { setUser, setLoading, setError } = useUserStore();
   const { navigateTo } = useAppNavigation();
   
-  // Check if user is on desktop browser (not in Telegram app) immediately
+  // Always call hooks first (React rules)
+  const { data: authData, isLoading, error } = useVerifyUser();
+  
+  // Check desktop after hooks
   const isDesktop = isDesktopBrowser();
   
+  // Desktop detection effect
   useEffect(() => {
-    // Force QR screen if no Telegram data or desktop browser
-    const forceQR = !window.Telegram?.WebApp?.initData || 
-                   window.Telegram?.WebApp?.initData === "" ||
-                   isDesktop;
+    // More conservative detection - only show QR if definitely desktop
+    const shouldShowQR = isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user;
     
-    if (forceQR) {
-      console.log('Showing QR bridge screen - reason:', 
-        !window.Telegram?.WebApp?.initData ? 'no initData' : 
-        isDesktop ? 'desktop browser' : 'unknown');
+    if (shouldShowQR) {
+      console.log('Showing QR bridge screen - desktop browser without Telegram user');
       navigateTo(APP_STATES.DESKTOP_BRIDGE);
       return;
     }
   }, [navigateTo, isDesktop]);
-  
-  // Call API hook (always for React rules), but will handle desktop case in useEffect
-  const { data: authData, isLoading, error } = useVerifyUser();
 
+  // Loading state effect
   useEffect(() => {
-    if (!isDesktop) {
-      setLoading(isLoading);
-    }
-  }, [isLoading, setLoading, isDesktop]);
+    setLoading(isLoading);
+  }, [isLoading, setLoading]);
 
+  // Auth data processing effect
   useEffect(() => {
-    // Skip auth logic if desktop or forcing QR
-    const forceQR = !window.Telegram?.WebApp?.initData || 
-                   window.Telegram?.WebApp?.initData === "" ||
-                   isDesktop;
-    if (forceQR) {
+    // Skip auth logic if showing QR screen
+    const shouldShowQR = isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (shouldShowQR) {
       return;
     }
 
@@ -85,11 +80,9 @@ export const LoaderScreen: React.FC = () => {
     }
   }, [authData, error, setUser, setError, navigateTo, isDesktop]);
 
-  // Don't show loader if forcing QR - navigation should happen immediately
-  const forceQR = !window.Telegram?.WebApp?.initData || 
-                 window.Telegram?.WebApp?.initData === "" ||
-                 isDesktop;
-  if (forceQR) {
+  // Don't show loader if showing QR screen
+  const shouldShowQR = isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user;
+  if (shouldShowQR) {
     return null;
   }
 

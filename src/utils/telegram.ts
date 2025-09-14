@@ -15,31 +15,47 @@ export const getTelegramWebApp = (): TelegramWebApp | null => {
  */
 export const isTelegramWebApp = (): boolean => {
   const tg = getTelegramWebApp();
-  return !!(tg && tg.initData && tg.initData.length > 0);
+  // More permissive check - if Telegram WebApp exists and has some context
+  return !!(tg && (tg.initData || tg.initDataUnsafe?.user));
 };
 
 /**
  * Check if user is on desktop/browser (not in Telegram app)
  */
 export const isDesktopBrowser = (): boolean => {
-  // Primary check: no Telegram WebApp or no initData
+  // Check if we have Telegram WebApp context at all
+  const hasTelegramSDK = !!(window.Telegram && window.Telegram.WebApp);
   const hasTelegramWebApp = isTelegramWebApp();
   
-  // If no Telegram WebApp context, it's definitely desktop/browser
-  if (!hasTelegramWebApp) {
-    console.log('Desktop browser detected: no Telegram WebApp context');
+  console.log('Desktop detection debug:', {
+    hasTelegramSDK,
+    hasTelegramWebApp,
+    initData: window.Telegram?.WebApp?.initData,
+    initDataUnsafe: window.Telegram?.WebApp?.initDataUnsafe,
+    userAgent: navigator.userAgent
+  });
+  
+  // If we have Telegram SDK but no proper WebApp context, still might be in Telegram
+  // Only show QR if definitely no Telegram context
+  if (!hasTelegramSDK) {
+    console.log('Desktop browser: no Telegram SDK');
     return true;
   }
   
-  // Additional desktop detection based on user agent
-  const userAgent = navigator.userAgent.toLowerCase();
-  const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-  const isDesktop = !isMobile;
-  
-  if (isDesktop) {
-    console.log('Desktop browser detected: desktop user agent');
+  // If we have Telegram context, assume mobile/Telegram app
+  if (hasTelegramWebApp) {
+    console.log('Mobile/Telegram app: has WebApp context');
+    return false;
   }
   
+  // Additional check: if SDK loaded but no data, could be in dev or special case
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+  
+  // Be more conservative - only show QR if definitely desktop UA AND no Telegram data
+  const isDesktop = !isMobile && !window.Telegram?.WebApp?.initData && !window.Telegram?.WebApp?.initDataUnsafe?.user;
+  
+  console.log('Desktop detection result:', isDesktop);
   return isDesktop;
 };
 
