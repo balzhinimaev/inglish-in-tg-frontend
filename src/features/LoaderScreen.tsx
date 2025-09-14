@@ -62,8 +62,17 @@ export const LoaderScreen: React.FC = () => {
 
     if (authData && isAuthenticated && user) {
       console.log('Login user with data:', { user, accessToken: authData.accessToken });
+      
+      // Update user with data from authData
+      const updatedUser = {
+        ...user,
+        onboardingCompletedAt: authData.onboardingCompleted ? new Date() : undefined,
+        proficiencyLevel: authData.proficiencyLevel || undefined,
+        isFirstOpen: authData.isFirstOpen,
+      };
+      
       // Login user with JWT token
-      login(user, authData.accessToken);
+      login(updatedUser, authData.accessToken);
       setError(null);
 
       // Определяем следующий экран на основе состояния онбординга

@@ -3,7 +3,7 @@ import apiClient from './api';
 import { API_ENDPOINTS } from '../utils/constants';
 import { AuthVerifyResponse, BackendAuthVerifyResponse, OnboardingCompleteRequest, OnboardingStatusResponse, SaveReminderSettingsRequest, User, JwtPayload } from '../types';
 import { LearningGoal, DailyGoal } from '../utils/constants';
-import { getTelegramInitData } from '../utils/telegram';
+import { getTelegramInitData, getTelegramUser } from '../utils/telegram';
 
 /**
  * JWT Token utilities
@@ -63,21 +63,22 @@ export const jwtUtils = {
 };
 
 /**
- * Convert API user to frontend User type
+ * Convert Telegram user to frontend User type
  */
-const convertApiUserToUser = (apiUser: any): User => {
+const convertApiUserToUser = (telegramUser: any): User => {
   return {
-    userId: apiUser.userId,
-    firstName: apiUser.firstName,
-    lastName: apiUser.lastName,
-    username: apiUser.username,
-    languageCode: apiUser.languageCode,
-    photoUrl: apiUser.photoUrl,
-    onboardingCompletedAt: apiUser.onboardingCompletedAt ? new Date(apiUser.onboardingCompletedAt) : undefined,
-    proficiencyLevel: apiUser.proficiencyLevel,
-    firstUtm: apiUser.firstUtm,
-    lastUtm: apiUser.lastUtm,
-    isFirstOpen: apiUser.isFirstOpen,
+    userId: telegramUser.id,
+    firstName: telegramUser.first_name,
+    lastName: telegramUser.last_name,
+    username: telegramUser.username,
+    languageCode: telegramUser.language_code,
+    photoUrl: telegramUser.photo_url,
+    // These fields will be set from authData
+    onboardingCompletedAt: undefined,
+    proficiencyLevel: undefined,
+    firstUtm: undefined,
+    lastUtm: undefined,
+    isFirstOpen: undefined,
   };
 };
 
@@ -132,12 +133,17 @@ export const useVerifyUser = () => {
 export const useAuth = () => {
   const { data: authData, isLoading, error } = useVerifyUser();
   
+  // Get user data from Telegram directly since backend doesn't return user object
+  const telegramUser = getTelegramUser();
+  const user = telegramUser ? convertApiUserToUser(telegramUser) : null;
+  
   console.log('useAuth hook state:', {
     authData,
     isLoading,
     error,
     hasAccessToken: !!authData?.accessToken,
-    hasUser: !!authData?.user
+    hasUser: !!user,
+    telegramUser
   });
   
   return {
@@ -145,7 +151,7 @@ export const useAuth = () => {
     isLoading,
     error,
     isAuthenticated: !!authData?.accessToken,
-    user: authData?.user ? convertApiUserToUser(authData.user) : null,
+    user,
   };
 };
 
