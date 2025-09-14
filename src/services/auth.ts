@@ -97,6 +97,8 @@ export const useVerifyUser = () => {
         headers: response.headers
       });
 
+      console.log('Full response data:', JSON.stringify(response.data, null, 2));
+
       const data = response.data as BackendAuthVerifyResponse;
       
       // Store JWT token if received
@@ -129,6 +131,14 @@ export const useVerifyUser = () => {
  */
 export const useAuth = () => {
   const { data: authData, isLoading, error } = useVerifyUser();
+  
+  console.log('useAuth hook state:', {
+    authData,
+    isLoading,
+    error,
+    hasAccessToken: !!authData?.accessToken,
+    hasUser: !!authData?.user
+  });
   
   return {
     authData,

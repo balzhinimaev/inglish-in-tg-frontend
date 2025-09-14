@@ -37,6 +37,16 @@ export const LoaderScreen: React.FC = () => {
 
   // Auth data processing effect
   useEffect(() => {
+    console.log('LoaderScreen auth effect:', {
+      isDesktop,
+      shouldShowQR: isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user,
+      error,
+      authData,
+      isAuthenticated,
+      user,
+      isLoading
+    });
+
     // Skip auth logic if showing QR screen
     const shouldShowQR = isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user;
     if (shouldShowQR) {
@@ -51,19 +61,22 @@ export const LoaderScreen: React.FC = () => {
     }
 
     if (authData && isAuthenticated && user) {
+      console.log('Login user with data:', { user, accessToken: authData.accessToken });
       // Login user with JWT token
       login(user, authData.accessToken);
       setError(null);
 
       // Определяем следующий экран на основе состояния онбординга
       if (!authData.onboardingCompleted) {
+        console.log('Navigating to onboarding');
         navigateTo(APP_STATES.ONBOARDING);
       } else {
+        console.log('Navigating to modules');
         // После онбординга открываем список модулей
         navigateTo(APP_STATES.MODULES);
       }
     }
-  }, [authData, error, isAuthenticated, user, login, setError, navigateTo, isDesktop]);
+  }, [authData, error, isAuthenticated, user, login, setError, navigateTo, isDesktop, isLoading]);
 
   // Don't show loader if showing QR screen
   const shouldShowQR = isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user;
