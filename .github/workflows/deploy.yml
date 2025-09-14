@@ -74,11 +74,13 @@ jobs:
           APP_PORT="${{ vars.APP_PORT || '8004' }}"
           DEPLOY_PATH="${{ vars.DEPLOY_PATH || '/opt/telegram-frontend' }}"
           CONTAINER_RESTART_POLICY="${{ vars.CONTAINER_RESTART_POLICY || 'unless-stopped' }}"
+          NGINX_STATIC_PATH="${{ vars.NGINX_STATIC_PATH || '/var/www/englishintg.ru/webapp' }}"
           
           echo "🚀 Starting deployment..."
           echo "📦 App: $APP_NAME"
           echo "🔌 Port: $APP_PORT"
           echo "📁 Path: $DEPLOY_PATH"
+          echo "🌐 Static files: $NGINX_STATIC_PATH"
           
           # Create project directory if not exists
           mkdir -p $DEPLOY_PATH
@@ -93,6 +95,31 @@ jobs:
           # Stop and remove existing container
           docker stop $APP_NAME || true
           docker rm $APP_NAME || true
+          
+          # ===== NEW: Extract static files from Docker image =====
+          echo "📁 Extracting static files for nginx..."
+          
+          # Create temporary container to extract static files
+          docker create --name temp_${APP_NAME} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          
+          # Create nginx static directory
+          sudo mkdir -p $NGINX_STATIC_PATH
+          
+          # Remove old static files
+          sudo rm -rf $NGINX_STATIC_PATH/*
+          
+          # Copy static files from container to nginx directory
+          docker cp temp_${APP_NAME}:/app/dist/. $NGINX_STATIC_PATH/
+          
+          # Set proper permissions for nginx
+          sudo chown -R www-data:www-data $NGINX_STATIC_PATH
+          sudo chmod -R 755 $NGINX_STATIC_PATH
+          
+          # Remove temporary container
+          docker rm temp_${APP_NAME}
+          
+          echo "✅ Static files extracted to $NGINX_STATIC_PATH"
+          # ===== END: Static files extraction =====
           
           # Run new container with all environment variables
           docker run -d \
@@ -122,6 +149,20 @@ jobs:
             exit 1
           fi
           
+          # Reload nginx to pick up new static files
+          echo "🔄 Reloading nginx..."
+          sudo systemctl reload nginx || true
+          
+          # Verify static files are accessible
+          echo "🔍 Verifying static files..."
+          if [ -f "$NGINX_STATIC_PATH/index.html" ]; then
+            echo "✅ Static files are in place"
+            ls -la $NGINX_STATIC_PATH/assets/ | head -5 || true
+          else
+            echo "⚠️  Static files might not be extracted properly"
+            ls -la $NGINX_STATIC_PATH/ || true
+          fi
+          
           # Clean up old images if enabled
           if [ "${{ vars.CLEANUP_OLD_IMAGES || 'true' }}" = "true" ]; then
             echo "🧹 Cleaning up old images..."
@@ -130,3 +171,4 @@ jobs:
           
           echo "🎉 Deployment completed successfully!"
           echo "📱 App available at: http://$(curl -s ifconfig.me):$APP_PORT/"
+          echo "🌐 Static webapp available at: https://englishintg.ru/webapp/"
