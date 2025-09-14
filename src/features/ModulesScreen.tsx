@@ -74,10 +74,8 @@ export const ModulesScreen: React.FC = () => {
         queryKey: ['lessons', moduleRef, 'ru'],
         queryFn: async (): Promise<LessonsResponse> => {
           try {
-            const userId = useUserStore.getState().user?.userId;
             const query = new URLSearchParams();
             query.set('moduleRef', moduleRef);
-            if (userId) query.set('userId', String(userId));
             query.set('lang', 'ru');
             const url = `${API_ENDPOINTS.CONTENT.LESSONS}?${query.toString()}`;
             const response = await apiClient.get(url);

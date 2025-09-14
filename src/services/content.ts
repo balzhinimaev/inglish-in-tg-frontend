@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from './api';
 import { API_ENDPOINTS } from '../utils/constants';
 import { Lesson, PaywallProduct, ModulesResponse, LessonsResponse, LessonResponse, ModuleVocabularyResponse, VocabularyItem } from '../types';
-import { useUserStore } from '../store/user';
 
 /**
  * Get lesson data
@@ -11,15 +10,8 @@ export const useLesson = (lessonId: number | string) => {
   return useQuery({
     queryKey: ['lesson', lessonId],
     queryFn: async (): Promise<Lesson> => {
-      const userId = useUserStore.getState().user?.userId;
-      
-      if (!userId) {
-        throw new Error('User ID is required for lesson access');
-      }
-
-      // Отправляем userId в POST запросе для protected endpoint
+      // Отправляем только lessonId, userId извлекается из JWT токена
       const response = await apiClient.post(API_ENDPOINTS.CONTENT.LESSON, {
-        userId,
         lessonId,
       });
       return response.data;
@@ -35,17 +27,9 @@ export const usePaywallProducts = () => {
   return useQuery({
     queryKey: ['paywall', 'products'],
     queryFn: async (): Promise<PaywallProduct[]> => {
-      const userId = useUserStore.getState().user?.userId;
-      
-      if (!userId) {
-        throw new Error('User ID is required for paywall access');
-      }
-
       try {
-        // Отправляем userId в POST запросе для protected endpoint
-        const response = await apiClient.post(API_ENDPOINTS.CONTENT.PAYWALL, {
-          userId,
-        });
+        // userId извлекается из JWT токена на бэкенде
+        const response = await apiClient.post(API_ENDPOINTS.CONTENT.PAYWALL, {});
         return response.data.products || [];
       } catch (error) {
         // Если API недоступен, используем mock данные
@@ -66,9 +50,7 @@ export const useModules = (params?: { level?: string; lang?: string }) => {
   return useQuery({
     queryKey: ['modules', params?.level, params?.lang],
     queryFn: async (): Promise<ModulesResponse> => {
-      const userId = useUserStore.getState().user?.userId;
       const query = new URLSearchParams();
-      if (userId) query.set('userId', String(userId));
       if (params?.level) query.set('level', params.level);
       if (params?.lang) query.set('lang', params.lang);
 
@@ -88,11 +70,8 @@ export const useLessons = (params: { moduleRef: string; lang?: string }) => {
   return useQuery({
     queryKey: ['lessons', params.moduleRef, params.lang],
     queryFn: async (): Promise<LessonsResponse> => {
-      const userId = useUserStore.getState().user?.userId;
-
       // Build query params
       const query = new URLSearchParams();
-      if (userId) query.set('userId', String(userId));
       if (params.lang) query.set('lang', params.lang);
 
       // Prefer v2 endpoint shape: GET /content/v2/modules/:moduleRef/lessons → returns array
@@ -110,7 +89,6 @@ export const useLessons = (params: { moduleRef: string; lang?: string }) => {
       // Legacy fallback: GET /content/lessons?moduleRef=... → may return {lessons} or array
       const legacyQuery = new URLSearchParams();
       legacyQuery.set('moduleRef', params.moduleRef);
-      if (userId) legacyQuery.set('userId', String(userId));
       if (params.lang) legacyQuery.set('lang', params.lang);
 
       const legacyUrl = `${API_ENDPOINTS.CONTENT.LESSONS}?${legacyQuery.toString()}`;
@@ -129,11 +107,8 @@ export const useDetailedLesson = (params: { lessonRef: string; lang?: string }) 
   return useQuery({
     queryKey: ['detailedLesson', params.lessonRef, params.lang],
     queryFn: async (): Promise<LessonResponse> => {
-      const userId = useUserStore.getState().user?.userId;
-      
       try {
         const query = new URLSearchParams();
-        if (userId) query.set('userId', String(userId));
         if (params.lang) query.set('lang', params.lang);
 
         // Prefer v2 detail endpoint
@@ -822,10 +797,8 @@ export const useModuleVocabulary = (params: { moduleRef: string; lang?: string }
     queryKey: ['vocabulary', params.moduleRef, params.lang],
     queryFn: async (): Promise<ModuleVocabularyResponse> => {
       try {
-        const userId = useUserStore.getState().user?.userId;
         const query = new URLSearchParams();
         query.set('moduleRef', params.moduleRef);
-        if (userId) query.set('userId', String(userId));
         if (params.lang) query.set('lang', params.lang);
         
         const url = `${API_ENDPOINTS.CONTENT.VOCABULARY}?${query.toString()}`;
