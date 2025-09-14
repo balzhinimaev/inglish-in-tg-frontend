@@ -25,12 +25,18 @@ export const ModulesScreen: React.FC = () => {
 
   const { data, isLoading, error } = useModules({ lang: 'ru' });
   const allModules = data?.modules || [];
-  
+
+  const debugLog = (...args: unknown[]) => {
+    if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+      console.log(...args);
+    }
+  };
+
   // Debug logging
-  console.log('Modules API response:', { data, isLoading, error, allModules });
-  
+  debugLog('Modules API response:', { data, isLoading, error, allModules });
+
   // Debug subscription and availability
-  console.log('Debug button visibility:', {
+  debugLog('Debug button visibility:', {
     hasActiveSubscription: hasActiveSubscription(),
     entitlement: entitlement,
     lockedModules: allModules.filter(m => !m.isAvailable),
@@ -87,18 +93,18 @@ export const ModulesScreen: React.FC = () => {
 
   // Simplified floating button scroll logic - show on scroll up, hide on scroll down
   useEffect(() => {
-    console.log('🔧 useEffect triggered - setting up scroll listener');
+    debugLog('🔧 useEffect triggered - setting up scroll listener');
     
     let ticking = false;
     let screenElement: HTMLDivElement | null = null;
 
     const handleScroll = () => {
-      console.log('🎯 handleScroll called!');
+      debugLog('🎯 handleScroll called!');
       if (ticking || !screenElement) return;
 
       ticking = true;
       requestAnimationFrame(() => {
-        console.log('🎯 requestAnimationFrame executing...');
+        debugLog('🎯 requestAnimationFrame executing...');
         ticking = false;
 
         // Always hide if user has active subscription
@@ -122,7 +128,7 @@ export const ModulesScreen: React.FC = () => {
         const canScroll = scrollHeight > clientHeight; // Content is scrollable
         
         // Temporary debug to understand the issue - log EVERY scroll event
-        console.log('🐛 EVERY SCROLL:', {
+        debugLog('🐛 EVERY SCROLL:', {
           scrollY: Math.round(currentScrollY),
           delta: Math.round(scrollDelta),
           scrollUp: isScrollingUp,
@@ -160,23 +166,23 @@ export const ModulesScreen: React.FC = () => {
     
     const trySetupListener = () => {
       screenElement = screenRef.current;
-      console.log(`🔧 Attempt ${retries + 1}: screenElement:`, screenElement);
+      debugLog(`🔧 Attempt ${retries + 1}: screenElement:`, screenElement);
       
       if (screenElement) {
-        console.log('✅ Adding scroll listener to:', screenElement);
+        debugLog('✅ Adding scroll listener to:', screenElement);
         screenElement.addEventListener('scroll', handleScroll, { passive: true });
-        console.log('✅ Scroll listener added successfully');
+        debugLog('✅ Scroll listener added successfully');
         return;
       }
       
       retries++;
       if (retries < maxRetries) {
         const delay = 50 * retries; // 50ms, 100ms, 150ms, etc.
-        console.log(`⏳ Retry ${retries}/${maxRetries} in ${delay}ms...`);
+        debugLog(`⏳ Retry ${retries}/${maxRetries} in ${delay}ms...`);
         const timeoutId = globalThis.setTimeout(trySetupListener, delay);
         retryTimeouts.push(timeoutId);
       } else {
-        console.log('❌ Failed to find screenElement after all retries');
+        debugLog('❌ Failed to find screenElement after all retries');
       }
     };
     
@@ -185,7 +191,7 @@ export const ModulesScreen: React.FC = () => {
     retryTimeouts.push(initialTimeout);
     
     return () => {
-      console.log('🧹 Cleaning up scroll listener and all timeouts');
+      debugLog('🧹 Cleaning up scroll listener and all timeouts');
       retryTimeouts.forEach(id => clearTimeout(id));
       if (screenElement) {
         screenElement.removeEventListener('scroll', handleScroll);

@@ -23,7 +23,9 @@ export const LoaderScreen: React.FC = () => {
     const shouldShowQR = isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user;
     
     if (shouldShowQR) {
-      console.log('Showing QR bridge screen - desktop browser without Telegram user');
+      if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+        console.log('Showing QR bridge screen - desktop browser without Telegram user');
+      }
       navigateTo(APP_STATES.DESKTOP_BRIDGE);
       return;
     }
