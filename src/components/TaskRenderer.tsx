@@ -82,7 +82,9 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({
               size="sm"
               onClick={() => {
                 // TODO: Play audio
-                console.log('Playing audio:', audio);
+                if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+                  console.log('Playing audio:', audio);
+                }
               }}
               className="mb-4"
             >
@@ -156,7 +158,9 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({
               size="sm"
               onClick={() => {
                 // TODO: Play audio
-                console.log('Playing audio:', audio);
+                if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+                  console.log('Playing audio:', audio);
+                }
               }}
               className="mb-4"
             >
@@ -236,7 +240,9 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({
               fullWidth
               onClick={() => {
                 // TODO: Play audio
-                console.log('Playing audio:', audio);
+                if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+                  console.log('Playing audio:', audio);
+                }
               }}
               className="bg-telegram-accent hover:bg-telegram-accent/90 text-white hover:scale-105 transition-all duration-200 hover:shadow-lg group"
             >

@@ -45,7 +45,6 @@ async function main() {
   const { baseUrl, moduleRef, lang, userId, limit } = parseArgs();
   const v2LessonsUrl = `${baseUrl}/content/v2/modules/${encodeURIComponent(moduleRef)}/lessons${buildQuery({ lang, userId })}`;
 
-  console.log(`[1/3] Fetching LessonSummary list: ${v2LessonsUrl}`);
   const listResp = await axios.get(v2LessonsUrl).catch(async (e) => {
     // fallback to legacy
     const legacyUrl = `${baseUrl}/content/lessons${buildQuery({ moduleRef, lang, userId })}`;
@@ -61,15 +60,11 @@ async function main() {
     process.exit(2);
   }
   const lessons = listParse.data;
-  console.log(`Validated ${lessons.length} lessons in module ${moduleRef}`);
-
   // Enumerate fields presence
   const fieldPresence = new Map<string, number>();
   for (const l of lessons) {
     Object.keys(l).forEach((k) => fieldPresence.set(k, (fieldPresence.get(k) || 0) + 1));
   }
-  console.log('Fields in LessonSummary (key: count):');
-  console.log([...fieldPresence.entries()].sort((a, b) => b[1] - a[1]));
 
   // Validate details
   const sample = limit ? lessons.slice(0, limit) : lessons;
@@ -98,7 +93,6 @@ async function main() {
     process.exit(3);
   }
 
-  console.log('[3/3] All LessonDetail payloads validated successfully. ✅');
 }
 
 main().catch((e) => {

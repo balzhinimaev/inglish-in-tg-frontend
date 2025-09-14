@@ -27,24 +27,30 @@ export const isDesktopBrowser = (): boolean => {
   const hasTelegramSDK = !!(window.Telegram && window.Telegram.WebApp);
   const hasTelegramWebApp = isTelegramWebApp();
   
-  console.log('Desktop detection debug:', {
-    hasTelegramSDK,
-    hasTelegramWebApp,
-    initData: window.Telegram?.WebApp?.initData,
-    initDataUnsafe: window.Telegram?.WebApp?.initDataUnsafe,
-    userAgent: navigator.userAgent
-  });
+  if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+    console.log('Desktop detection debug:', {
+      hasTelegramSDK,
+      hasTelegramWebApp,
+      initData: window.Telegram?.WebApp?.initData,
+      initDataUnsafe: window.Telegram?.WebApp?.initDataUnsafe,
+      userAgent: navigator.userAgent
+    });
+  }
   
   // If we have Telegram SDK but no proper WebApp context, still might be in Telegram
   // Only show QR if definitely no Telegram context
   if (!hasTelegramSDK) {
-    console.log('Desktop browser: no Telegram SDK');
+    if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+      console.log('Desktop browser: no Telegram SDK');
+    }
     return true;
   }
   
   // If we have Telegram context, assume mobile/Telegram app
   if (hasTelegramWebApp) {
-    console.log('Mobile/Telegram app: has WebApp context');
+    if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+      console.log('Mobile/Telegram app: has WebApp context');
+    }
     return false;
   }
   
@@ -55,7 +61,9 @@ export const isDesktopBrowser = (): boolean => {
   // Be more conservative - only show QR if definitely desktop UA AND no Telegram data
   const isDesktop = !isMobile && !window.Telegram?.WebApp?.initData && !window.Telegram?.WebApp?.initDataUnsafe?.user;
   
-  console.log('Desktop detection result:', isDesktop);
+  if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+    console.log('Desktop detection result:', isDesktop);
+  }
   return isDesktop;
 };
 
