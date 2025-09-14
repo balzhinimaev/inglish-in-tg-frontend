@@ -27,22 +27,23 @@ apiClient.interceptors.request.use(
       if (initData) {
         // Parse initData string into individual parameters
         const params = new URLSearchParams(initData);
-        const queryParams = new URLSearchParams();
         
-        // Add individual parameters that backend expects
-        if (params.has('hash')) queryParams.set('hash', params.get('hash')!);
-        if (params.has('user')) queryParams.set('user', params.get('user')!);
-        if (params.has('query_id')) queryParams.set('query_id', params.get('query_id')!);
-        if (params.has('auth_date')) queryParams.set('auth_date', params.get('auth_date')!);
-        if (params.has('start_param')) queryParams.set('start_param', params.get('start_param')!);
+        // Create query string preserving the original order from initData
+        // This is important for signature validation
+        const queryString = initData; // Use the original initData string directly
+        
+        console.log('Auth verify request:', {
+          originalInitData: initData,
+          parsedParams: Object.fromEntries(params),
+          baseURL: config.baseURL
+        });
         
         // Add parameters to URL
         const separator = config.url?.includes('?') ? '&' : '?';
-        config.url = `${config.url}${separator}${queryParams.toString()}`;
+        config.url = `${config.url}${separator}${queryString}`;
         
         console.log('Auth verify request:', {
           url: config.url,
-          parsedParams: Object.fromEntries(queryParams),
           baseURL: config.baseURL
         });
       }
