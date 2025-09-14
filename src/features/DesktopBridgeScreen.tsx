@@ -25,7 +25,9 @@ export const DesktopBridgeScreen: React.FC<DesktopBridgeScreenProps> = ({
         },
         errorCorrectionLevel: 'H'
       }).then(() => {
-        console.log('QR code generated successfully');
+        if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+          console.log('QR code generated successfully');
+        }
       }).catch((error) => {
         console.error('QR code generation failed:', error);
         // Fallback: show error message

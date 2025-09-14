@@ -49,7 +49,9 @@ export const usePaywallProducts = () => {
         return response.data.products || [];
       } catch (error) {
         // Если API недоступен, используем mock данные
-        console.log('Paywall API not available, using mock data:', error);
+        if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+          console.log('Paywall API not available, using mock data:', error);
+        }
         return getMockPaywallProducts();
       }
     },
@@ -161,7 +163,9 @@ export const useDetailedLesson = (params: { lessonRef: string; lang?: string }) 
         }
         throw new Error('Invalid lesson detail payload');
       } catch (error) {
-        console.log('Failed to load lesson detail:', params.lessonRef, error);
+        if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+          console.log('Failed to load lesson detail:', params.lessonRef, error);
+        }
         throw error;
       }
     },
@@ -828,7 +832,9 @@ export const useModuleVocabulary = (params: { moduleRef: string; lang?: string }
         const response = await apiClient.get(url);
         return response.data as ModuleVocabularyResponse;
       } catch (error) {
-        console.log('API failed, using mock vocabulary data for module:', params.moduleRef, error);
+        if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+          console.log('API failed, using mock vocabulary data for module:', params.moduleRef, error);
+        }
         return getMockModuleVocabulary(params.moduleRef);
       }
     },
