@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import * as QRCode from 'qrcode.js';
+import QRCode from 'qrcode';
 import { Screen } from '../components';
 
 interface DesktopBridgeScreenProps {
@@ -18,14 +18,28 @@ export const DesktopBridgeScreen: React.FC<DesktopBridgeScreenProps> = ({
       // Clear previous QR code
       qrRef.current.innerHTML = '';
       
-      // Generate QR code
-      const qr = new QRCode(qrRef.current, {
-        text: webAppUrl,
+      // Generate QR code as canvas
+      QRCode.toCanvas(qrRef.current, webAppUrl, {
         width: 256,
-        height: 256,
-        colorDark: '#ffffff',
-        colorLight: '#121212',
-        correctLevel: QRCode.CorrectLevel.H,
+        margin: 2,
+        color: {
+          dark: '#ffffff',
+          light: '#121212',
+        },
+        errorCorrectionLevel: 'H'
+      }).then(() => {
+        console.log('QR code generated successfully');
+      }).catch((error) => {
+        console.error('QR code generation failed:', error);
+        // Fallback: show text link if QR fails
+        if (qrRef.current) {
+          qrRef.current.innerHTML = `
+            <div class="p-4 text-center text-telegram-hint">
+              <p>QR код недоступен</p>
+              <p class="text-xs mt-2">Используйте кнопку ниже</p>
+            </div>
+          `;
+        }
       });
     }
   }, [webAppUrl]);
