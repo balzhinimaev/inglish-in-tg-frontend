@@ -166,7 +166,7 @@ export interface ModuleProgress {
 
 export interface ModuleItem {
   moduleRef: string;
-  level: string; // e.g. A0..C2
+  level: 'A0' | 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'; // Уровни сложности
   title: string;
   description: string;
   tags: string[];

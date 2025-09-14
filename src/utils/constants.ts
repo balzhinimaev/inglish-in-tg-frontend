@@ -17,7 +17,7 @@ export const API_ENDPOINTS = {
     LESSON: '/content/lesson1',
     LESSONS: '/content/lessons', // legacy list endpoint (may return {lessons} wrapper)
     LESSON_DETAIL_V2: '/content/v2/lessons', // detail by lessonRef
-    MODULES: '/content/modules', // Updated to match backend
+    MODULES: '/content/v2/modules', // Updated to match backend
     VOCABULARY: '/content/vocabulary',
     PAYWALL: '/content/paywall',
     ONBOARDING: '/content/onboarding',
@@ -72,6 +72,27 @@ export const PROFICIENCY_LEVELS = {
 } as const;
 
 export type ProficiencyLevel = typeof PROFICIENCY_LEVELS[keyof typeof PROFICIENCY_LEVELS];
+
+// Module levels (CEFR)
+export const MODULE_LEVELS = {
+  A0: 'A0',
+  A1: 'A1',
+  A2: 'A2',
+  B1: 'B1',
+  B2: 'B2',
+  C1: 'C1',
+  C2: 'C2',
+} as const;
+
+export type ModuleLevel = typeof MODULE_LEVELS[keyof typeof MODULE_LEVELS];
+
+// Supported languages
+export const SUPPORTED_LANGUAGES = {
+  RU: 'ru',
+  EN: 'en',
+} as const;
+
+export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[keyof typeof SUPPORTED_LANGUAGES];
 
 // Learning goals
 export const LEARNING_GOALS = {

@@ -9,7 +9,7 @@ import { APP_STATES } from '../utils/constants';
 import { tracking } from '../services/tracking';
 import { hapticFeedback, hideBackButton, getTelegramUser } from '../utils/telegram';
 import type { ModuleItem, LessonsResponse } from '../types';
-import { API_ENDPOINTS } from '../utils/constants';
+import { API_ENDPOINTS, SUPPORTED_LANGUAGES } from '../utils/constants';
 
 export const ModulesScreen: React.FC = () => {
   const { user, entitlement, hasActiveSubscription } = useUserStore();
@@ -23,8 +23,17 @@ export const ModulesScreen: React.FC = () => {
   const modulesPerPage = 6; // Количество модулей на странице
   const screenRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading, error } = useModules({ lang: 'ru' });
+  const { data, isLoading, error } = useModules({ lang: SUPPORTED_LANGUAGES.RU });
   const allModules = Array.isArray(data?.modules) ? data.modules : [];
+
+  // Группируем модули по уровням для отображения (можно использовать для фильтрации)
+  // const modulesByLevel = allModules.reduce((acc, module) => {
+  //   if (!acc[module.level]) {
+  //     acc[module.level] = [];
+  //   }
+  //   acc[module.level].push(module);
+  //   return acc;
+  // }, {} as Record<string, ModuleItem[]>);
 
   const debugLog = (...args: unknown[]) => {
     if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
@@ -348,6 +357,9 @@ export const ModulesScreen: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 max-[300px]:mb-0.5">
                       <h3 className={`font-semibold text-lg ${locked ? 'text-telegram-hint' : 'text-telegram-text'} max-[300px]:text-base max-[300px]:leading-tight truncate`}>{m.title}</h3>
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${locked ? 'bg-telegram-card-bg text-telegram-hint' : 'bg-telegram-button text-telegram-button-text'} max-[300px]:px-1.5 max-[300px]:text-xs`}>
+                        {m.level}
+                      </span>
                       {proBadge && (
                         <span className="ml-2 px-2 py-0.5 text-[10px] rounded-full bg-telegram-card-bg text-telegram-accent border border-white/10 max-[300px]:px-1.5 max-[300px]:py-0.5 max-[300px]:text-[9px] max-[300px]:ml-1 shrink-0">
                           PRO

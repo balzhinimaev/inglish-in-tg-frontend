@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import apiClient from './api';
-import { API_ENDPOINTS } from '../utils/constants';
+import { API_ENDPOINTS, ModuleLevel, SupportedLanguage } from '../utils/constants';
 import { Lesson, PaywallProduct, ModulesResponse, LessonsResponse, LessonResponse, ModuleVocabularyResponse, VocabularyItem } from '../types';
 
 /**
@@ -46,7 +46,7 @@ export const usePaywallProducts = () => {
 /**
  * Get modules list with optional user progress and availability
  */
-export const useModules = (params?: { level?: string; lang?: string }) => {
+export const useModules = (params?: { level?: ModuleLevel; lang?: SupportedLanguage }) => {
   return useQuery({
     queryKey: ['modules', params?.level, params?.lang],
     queryFn: async (): Promise<ModulesResponse> => {
@@ -66,7 +66,7 @@ export const useModules = (params?: { level?: string; lang?: string }) => {
 /**
  * Get lessons list for a module
  */
-export const useLessons = (params: { moduleRef: string; lang?: string }) => {
+export const useLessons = (params: { moduleRef: string; lang?: SupportedLanguage }) => {
   return useQuery({
     queryKey: ['lessons', params.moduleRef, params.lang],
     queryFn: async (): Promise<LessonsResponse> => {
@@ -103,7 +103,7 @@ export const useLessons = (params: { moduleRef: string; lang?: string }) => {
 /**
  * Get a specific lesson with all its tasks
  */
-export const useDetailedLesson = (params: { lessonRef: string; lang?: string }) => {
+export const useDetailedLesson = (params: { lessonRef: string; lang?: SupportedLanguage }) => {
   return useQuery({
     queryKey: ['detailedLesson', params.lessonRef, params.lang],
     queryFn: async (): Promise<LessonResponse> => {
@@ -792,7 +792,7 @@ export const useDetailedLesson = (params: { lessonRef: string; lang?: string }) 
 /**
  * Get vocabulary for a module
  */
-export const useModuleVocabulary = (params: { moduleRef: string; lang?: string }) => {
+export const useModuleVocabulary = (params: { moduleRef: string; lang?: SupportedLanguage }) => {
   return useQuery({
     queryKey: ['vocabulary', params.moduleRef, params.lang],
     queryFn: async (): Promise<ModuleVocabularyResponse> => {
