@@ -12,7 +12,7 @@ import type { ModuleItem, LessonsResponse } from '../types';
 import { API_ENDPOINTS, SUPPORTED_LANGUAGES } from '../utils/constants';
 
 export const ModulesScreen: React.FC = () => {
-  const { user, entitlement, hasActiveSubscription } = useUserStore();
+  const { user, hasActiveSubscription } = useUserStore();
   const telegramUser = getTelegramUser();
   const { navigateTo } = useAppNavigation();
   const queryClient = useQueryClient();
@@ -35,23 +35,6 @@ export const ModulesScreen: React.FC = () => {
   //   return acc;
   // }, {} as Record<string, ModuleItem[]>);
 
-  const debugLog = (...args: unknown[]) => {
-    if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
-      console.log(...args);
-    }
-  };
-
-  // Debug logging
-  debugLog('Modules API response:', { data, isLoading, error, allModules });
-
-  // Debug subscription and availability
-  debugLog('Debug button visibility:', {
-    hasActiveSubscription: hasActiveSubscription(),
-    entitlement: entitlement,
-    lockedModules: Array.isArray(allModules) ? allModules.filter(m => !m.isAvailable) : [],
-    hasLockedModules: Array.isArray(allModules) ? allModules.some(m => !m.isAvailable) : false,
-    shouldShowButtons: !hasActiveSubscription()
-  });
   
   // Вычисляем модули для текущей страницы
   const totalPages = Math.ceil((Array.isArray(allModules) ? allModules.length : 0) / modulesPerPage);
@@ -100,18 +83,14 @@ export const ModulesScreen: React.FC = () => {
 
   // Simplified floating button scroll logic - show on scroll up, hide on scroll down
   useEffect(() => {
-    debugLog('🔧 useEffect triggered - setting up scroll listener');
-    
     let ticking = false;
     let screenElement: HTMLDivElement | null = null;
 
     const handleScroll = () => {
-      debugLog('🎯 handleScroll called!');
       if (ticking || !screenElement) return;
 
       ticking = true;
       requestAnimationFrame(() => {
-        debugLog('🎯 requestAnimationFrame executing...');
         ticking = false;
 
         // Always hide if user has active subscription
@@ -133,22 +112,6 @@ export const ModulesScreen: React.FC = () => {
         const isAtTop = false; // Hide until main button scrolls out of view
         const isNearBottom = currentScrollY >= (scrollHeight - clientHeight - 120); // Hide when main CTA button is visible
         const canScroll = scrollHeight > clientHeight; // Content is scrollable
-        
-        // Temporary debug to understand the issue - log EVERY scroll event
-        debugLog('🐛 EVERY SCROLL:', {
-          scrollY: Math.round(currentScrollY),
-          delta: Math.round(scrollDelta),
-          scrollUp: isScrollingUp,
-          scrollDown: isScrollingDown,
-          canScroll,
-          isAtTop,
-          isNearBottom,
-          scrollHeight: Math.round(scrollHeight),
-          clientHeight: Math.round(clientHeight),
-          distanceFromBottom: Math.round(scrollHeight - clientHeight - currentScrollY),
-          shouldShow: canScroll && !isAtTop && !isNearBottom && isScrollingUp,
-          currentVisible: showFloatingButton
-        });
 
         // Simple logic: Show on scroll up, hide on scroll down or at edges
         if (canScroll && !isAtTop && !isNearBottom) {
@@ -173,23 +136,17 @@ export const ModulesScreen: React.FC = () => {
     
     const trySetupListener = () => {
       screenElement = screenRef.current;
-      debugLog(`🔧 Attempt ${retries + 1}: screenElement:`, screenElement);
       
       if (screenElement) {
-        debugLog('✅ Adding scroll listener to:', screenElement);
         screenElement.addEventListener('scroll', handleScroll, { passive: true });
-        debugLog('✅ Scroll listener added successfully');
         return;
       }
       
       retries++;
       if (retries < maxRetries) {
         const delay = 50 * retries; // 50ms, 100ms, 150ms, etc.
-        debugLog(`⏳ Retry ${retries}/${maxRetries} in ${delay}ms...`);
         const timeoutId = globalThis.setTimeout(trySetupListener, delay);
         retryTimeouts.push(timeoutId);
-      } else {
-        debugLog('❌ Failed to find screenElement after all retries');
       }
     };
     
@@ -198,7 +155,6 @@ export const ModulesScreen: React.FC = () => {
     retryTimeouts.push(initialTimeout);
     
     return () => {
-      debugLog('🧹 Cleaning up scroll listener and all timeouts');
       retryTimeouts.forEach(id => clearTimeout(id));
       if (screenElement) {
         screenElement.removeEventListener('scroll', handleScroll);
