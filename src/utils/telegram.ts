@@ -15,21 +15,30 @@ export const getTelegramWebApp = (): TelegramWebApp | null => {
  */
 export const isTelegramWebApp = (): boolean => {
   const tg = getTelegramWebApp();
-  return !!(tg && tg.initData);
+  return !!(tg && tg.initData && tg.initData.length > 0);
 };
 
 /**
  * Check if user is on desktop/browser (not in Telegram app)
  */
 export const isDesktopBrowser = (): boolean => {
-  // Check if Telegram WebApp is not available or no initData
-  if (!isTelegramWebApp()) {
+  // Primary check: no Telegram WebApp or no initData
+  const hasTelegramWebApp = isTelegramWebApp();
+  
+  // If no Telegram WebApp context, it's definitely desktop/browser
+  if (!hasTelegramWebApp) {
+    console.log('Desktop browser detected: no Telegram WebApp context');
     return true;
   }
   
-  // Additional checks for desktop detection
+  // Additional desktop detection based on user agent
   const userAgent = navigator.userAgent.toLowerCase();
-  const isDesktop = !(/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent));
+  const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+  const isDesktop = !isMobile;
+  
+  if (isDesktop) {
+    console.log('Desktop browser detected: desktop user agent');
+  }
   
   return isDesktop;
 };

@@ -8,17 +8,14 @@ interface DesktopBridgeScreenProps {
 }
 
 export const DesktopBridgeScreen: React.FC<DesktopBridgeScreenProps> = ({
-  botUsername = import.meta.env.VITE_BOT_USERNAME || 'englishintg_bot',
-  webAppUrl = import.meta.env.VITE_TELEGRAM_WEB_APP_URL || 'https://t.me/englishintg_bot/webapp'
+  botUsername = import.meta.env.VITE_BOT_USERNAME || 'EnglishINtg_bot',
+  webAppUrl = import.meta.env.VITE_TELEGRAM_WEB_APP_URL || 'https://t.me/EnglishINtg_bot/webapp'
 }) => {
-  const qrRef = useRef<HTMLDivElement>(null);
+  const qrRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (qrRef.current) {
-      // Clear previous QR code
-      qrRef.current.innerHTML = '';
-      
-      // Generate QR code as canvas
+      // Generate QR code directly on canvas element
       QRCode.toCanvas(qrRef.current, webAppUrl, {
         width: 256,
         margin: 2,
@@ -31,14 +28,21 @@ export const DesktopBridgeScreen: React.FC<DesktopBridgeScreenProps> = ({
         console.log('QR code generated successfully');
       }).catch((error) => {
         console.error('QR code generation failed:', error);
-        // Fallback: show text link if QR fails
-        if (qrRef.current) {
-          qrRef.current.innerHTML = `
-            <div class="p-4 text-center text-telegram-hint">
-              <p>QR код недоступен</p>
-              <p class="text-xs mt-2">Используйте кнопку ниже</p>
-            </div>
-          `;
+        // Fallback: show error message
+        const canvas = qrRef.current;
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            canvas.width = 256;
+            canvas.height = 256;
+            ctx.fillStyle = '#121212';
+            ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('QR код недоступен', 128, 120);
+            ctx.fillText('Используйте кнопку ниже', 128, 140);
+          }
         }
       });
     }
@@ -81,7 +85,11 @@ export const DesktopBridgeScreen: React.FC<DesktopBridgeScreenProps> = ({
 
           {/* QR Code */}
           <div className="bg-white p-6 rounded-2xl shadow-lg mb-6 inline-block">
-            <div ref={qrRef} className="flex justify-center" />
+            <canvas 
+              ref={qrRef} 
+              className="block"
+              style={{ maxWidth: '256px', maxHeight: '256px' }}
+            />
           </div>
 
           {/* Instructions */}

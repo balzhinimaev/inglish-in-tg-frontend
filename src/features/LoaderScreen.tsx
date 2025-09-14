@@ -11,22 +11,42 @@ export const LoaderScreen: React.FC = () => {
   const { setUser, setLoading, setError } = useUserStore();
   const { navigateTo } = useAppNavigation();
   
-  // Check if user is on desktop browser (not in Telegram app)
+  // Check if user is on desktop browser (not in Telegram app) immediately
+  const isDesktop = isDesktopBrowser();
+  
   useEffect(() => {
-    if (isDesktopBrowser()) {
-      console.log('Desktop browser detected, showing QR bridge screen');
+    // Force QR screen if no Telegram data or desktop browser
+    const forceQR = !window.Telegram?.WebApp?.initData || 
+                   window.Telegram?.WebApp?.initData === "" ||
+                   isDesktop;
+    
+    if (forceQR) {
+      console.log('Showing QR bridge screen - reason:', 
+        !window.Telegram?.WebApp?.initData ? 'no initData' : 
+        isDesktop ? 'desktop browser' : 'unknown');
       navigateTo(APP_STATES.DESKTOP_BRIDGE);
       return;
     }
-  }, [navigateTo]);
+  }, [navigateTo, isDesktop]);
   
+  // Call API hook (always for React rules), but will handle desktop case in useEffect
   const { data: authData, isLoading, error } = useVerifyUser();
 
   useEffect(() => {
-    setLoading(isLoading);
-  }, [isLoading, setLoading]);
+    if (!isDesktop) {
+      setLoading(isLoading);
+    }
+  }, [isLoading, setLoading, isDesktop]);
 
   useEffect(() => {
+    // Skip auth logic if desktop or forcing QR
+    const forceQR = !window.Telegram?.WebApp?.initData || 
+                   window.Telegram?.WebApp?.initData === "" ||
+                   isDesktop;
+    if (forceQR) {
+      return;
+    }
+
     if (error) {
       console.error('Authentication failed:', error);
       setError('Ошибка авторизации. Попробуйте перезапустить приложение.');
@@ -63,7 +83,15 @@ export const LoaderScreen: React.FC = () => {
         navigateTo(APP_STATES.MODULES);
       }
     }
-  }, [authData, error, setUser, setError, navigateTo]);
+  }, [authData, error, setUser, setError, navigateTo, isDesktop]);
+
+  // Don't show loader if forcing QR - navigation should happen immediately
+  const forceQR = !window.Telegram?.WebApp?.initData || 
+                 window.Telegram?.WebApp?.initData === "" ||
+                 isDesktop;
+  if (forceQR) {
+    return null;
+  }
 
   return (
     <Screen className="flex items-center justify-center">
