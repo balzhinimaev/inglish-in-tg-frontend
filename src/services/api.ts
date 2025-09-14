@@ -28,6 +28,11 @@ apiClient.interceptors.request.use(
         // Add initData directly to URL to avoid double encoding
         const separator = config.url?.includes('?') ? '&' : '?';
         config.url = `${config.url}${separator}initData=${encodeURIComponent(initData)}`;
+        console.log('Auth verify request:', {
+          url: config.url,
+          initData: initData.substring(0, 100) + '...',
+          baseURL: config.baseURL
+        });
       }
     }
     // For public endpoints, no auth needed
@@ -69,6 +74,12 @@ apiClient.interceptors.response.use(
     // Handle different error types
     if (error.response?.status === 401) {
       console.warn('Unauthorized - JWT token may be invalid or expired');
+      console.log('401 Error details:', {
+        url: error.config?.url,
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers
+      });
       // Remove invalid token
       jwtUtils.removeToken();
     } else if (error.response?.status === 403) {

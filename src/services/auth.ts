@@ -88,13 +88,23 @@ export const useVerifyUser = () => {
   return useQuery({
     queryKey: ['auth', 'verify'],
     queryFn: async (): Promise<AuthVerifyResponse> => {
+      console.log('Making auth verify request to:', API_ENDPOINTS.AUTH.VERIFY);
       const response = await apiClient.get(API_ENDPOINTS.AUTH.VERIFY);
+
+      console.log('Auth verify response:', {
+        status: response.status,
+        data: response.data,
+        headers: response.headers
+      });
 
       const data = response.data as AuthVerifyResponse;
       
       // Store JWT token if received
       if (data.accessToken) {
         jwtUtils.storeToken(data.accessToken);
+        console.log('JWT token stored');
+      } else {
+        console.warn('No accessToken in response:', data);
       }
 
       return data;
