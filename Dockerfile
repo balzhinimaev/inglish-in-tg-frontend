@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production --silent
+# Install dependencies (including dev dependencies for build)
+RUN npm ci --silent
 
 # Copy source code
 COPY . .
@@ -52,5 +52,5 @@ EXPOSE $APP_PORT
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:$APP_PORT/ || exit 1
 
-# Start serve on configurable port
-CMD sh -c "serve -s dist -l $APP_PORT"
+# Start serve on configurable port using ENTRYPOINT for variable expansion
+ENTRYPOINT ["sh", "-c", "serve -s dist -l ${APP_PORT:-8004}"]
