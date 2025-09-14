@@ -1,0 +1,130 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Docker buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL || vars.VITE_API_BASE_URL || 'https://api.example.com' }}
+          VITE_ENABLE_ANALYTICS=${{ vars.VITE_ENABLE_ANALYTICS || 'true' }}
+          VITE_ENABLE_DEBUG_LOGGING=${{ vars.VITE_ENABLE_DEBUG_LOGGING || 'false' }}
+          NODE_ENV=production
+          APP_PORT=${{ vars.APP_PORT || '8004' }}
+
+    - name: Deploy to VPS
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: ${{ secrets.VPS_PORT || '22' }}
+        script: |
+          # Configuration from GitHub Variables/Secrets
+          APP_NAME="${{ vars.APP_NAME || 'telegram-frontend' }}"
+          APP_PORT="${{ vars.APP_PORT || '8004' }}"
+          DEPLOY_PATH="${{ vars.DEPLOY_PATH || '/opt/telegram-frontend' }}"
+          CONTAINER_RESTART_POLICY="${{ vars.CONTAINER_RESTART_POLICY || 'unless-stopped' }}"
+          
+          echo "🚀 Starting deployment..."
+          echo "📦 App: $APP_NAME"
+          echo "🔌 Port: $APP_PORT"
+          echo "📁 Path: $DEPLOY_PATH"
+          
+          # Create project directory if not exists
+          mkdir -p $DEPLOY_PATH
+          cd $DEPLOY_PATH
+          
+          # Login to GitHub Container Registry
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          # Pull latest image
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          
+          # Stop and remove existing container
+          docker stop $APP_NAME || true
+          docker rm $APP_NAME || true
+          
+          # Run new container with all environment variables
+          docker run -d \
+            --name $APP_NAME \
+            --restart $CONTAINER_RESTART_POLICY \
+            -p $APP_PORT:$APP_PORT \
+            -e NODE_ENV=production \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          
+          # Wait for container to be ready
+          echo "⏳ Waiting for container to start..."
+          sleep ${{ vars.STARTUP_WAIT_TIME || '10' }}
+          
+          # Check if container is running
+          if docker ps -q -f name=$APP_NAME | grep -q .; then
+            echo "✅ Container is running!"
+            
+            # Test the application
+            if curl -f http://localhost:$APP_PORT/ > /dev/null 2>&1; then
+              echo "✅ Application is responding on port $APP_PORT"
+            else
+              echo "⚠️  Application might not be ready yet"
+            fi
+          else
+            echo "❌ Container failed to start"
+            docker logs $APP_NAME || true
+            exit 1
+          fi
+          
+          # Clean up old images if enabled
+          if [ "${{ vars.CLEANUP_OLD_IMAGES || 'true' }}" = "true" ]; then
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+          fi
+          
+          echo "🎉 Deployment completed successfully!"
+          echo "📱 App available at: http://$(curl -s ifconfig.me):$APP_PORT/"

@@ -22,18 +22,17 @@ const octagonalCardStyles = `
     );
     position: relative;
     background: linear-gradient(135deg, 
-      rgba(59, 130, 246, 0.12) 0%,
-      rgba(139, 92, 246, 0.08) 25%, 
-      rgba(16, 185, 129, 0.06) 50%,
-      rgba(245, 101, 101, 0.04) 75%,
-      rgba(251, 191, 36, 0.08) 100%
+      rgba(34, 197, 94, 0.18) 0%,
+      rgba(16, 185, 129, 0.15) 35%,
+      rgba(5, 150, 105, 0.12) 65%,
+      rgba(22, 163, 74, 0.16) 100%
     );
     backdrop-filter: blur(12px);
     border: none;
     box-shadow: 
-      0 8px 32px rgba(59, 130, 246, 0.15),
-      0 4px 16px rgba(139, 92, 246, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      0 8px 32px rgba(34, 197, 94, 0.20),
+      0 4px 16px rgba(16, 185, 129, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.30);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 10;
   }
@@ -44,10 +43,10 @@ const octagonalCardStyles = `
     inset: 0;
     clip-path: inherit;
     background: linear-gradient(135deg, 
-      rgba(59, 130, 246, 0.2) 0%, 
-      rgba(139, 92, 246, 0.15) 30%, 
-      rgba(16, 185, 129, 0.12) 60%,
-      rgba(251, 191, 36, 0.18) 100%
+      rgba(34, 197, 94, 0.28) 0%, 
+      rgba(16, 185, 129, 0.25) 35%, 
+      rgba(5, 150, 105, 0.20) 65%,
+      rgba(22, 163, 74, 0.26) 100%
     );
     opacity: 0;
     transition: opacity 0.4s ease;
@@ -60,10 +59,10 @@ const octagonalCardStyles = `
   .octagonal-card:hover {
     transform: translateY(-6px) scale(1.03);
     box-shadow: 
-      0 25px 50px rgba(59, 130, 246, 0.25),
-      0 15px 35px rgba(139, 92, 246, 0.15),
+      0 25px 50px rgba(34, 197, 94, 0.35),
+      0 15px 35px rgba(16, 185, 129, 0.25),
       0 8px 20px rgba(0, 0, 0, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      inset 0 1px 0 rgba(255, 255, 255, 0.40);
     /* border removed */
   }
   
@@ -151,9 +150,9 @@ const octagonalCardStyles = `
     width: 3px;
     height: 24px;
     background: linear-gradient(180deg, 
-      rgba(0,136,204,0.8) 0%, 
-      rgba(0,136,204,0.4) 50%, 
-      rgba(0,136,204,0.2) 100%
+      rgba(34,197,94,0.8) 0%, 
+      rgba(16,185,129,0.6) 50%, 
+      rgba(22,163,74,0.4) 100%
     );
     transform: translateX(-50%);
     z-index: 0;
@@ -169,8 +168,8 @@ const octagonalCardStyles = `
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: rgba(0,136,204,0.3);
-    border: 2px solid rgba(0,136,204,0.6);
+    background: rgba(34,197,94,0.5);
+    border: 2px solid rgba(16,185,129,0.8);
   }
   
   .connecting-line::after {
@@ -182,7 +181,7 @@ const octagonalCardStyles = `
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: rgba(0,136,204,0.6);
+    background: rgba(16,185,129,0.8);
   }
   
   @keyframes pulse-dot {
