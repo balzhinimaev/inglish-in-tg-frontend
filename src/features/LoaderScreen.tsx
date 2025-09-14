@@ -4,12 +4,21 @@ import { useUserStore } from '../store/user';
 import { useVerifyUser } from '../services/auth';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { APP_STATES } from '../utils/constants';
-import { getTelegramUser } from '../utils/telegram';
+import { getTelegramUser, isDesktopBrowser } from '../utils/telegram';
 import { User } from '../types';
 
 export const LoaderScreen: React.FC = () => {
   const { setUser, setLoading, setError } = useUserStore();
   const { navigateTo } = useAppNavigation();
+  
+  // Check if user is on desktop browser (not in Telegram app)
+  useEffect(() => {
+    if (isDesktopBrowser()) {
+      console.log('Desktop browser detected, showing QR bridge screen');
+      navigateTo(APP_STATES.DESKTOP_BRIDGE);
+      return;
+    }
+  }, [navigateTo]);
   
   const { data: authData, isLoading, error } = useVerifyUser();
 

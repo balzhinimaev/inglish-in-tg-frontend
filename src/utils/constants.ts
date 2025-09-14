@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
 // App states
 export const APP_STATES = {
   LOADING: 'loading',
+  DESKTOP_BRIDGE: 'desktop_bridge', // For desktop users - show QR code
   ONBOARDING: 'onboarding',
   MODULES: 'modules',
   LESSONS_LIST: 'lessons_list',

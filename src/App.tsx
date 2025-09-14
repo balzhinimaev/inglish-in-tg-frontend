@@ -3,6 +3,7 @@ import { useUserStore } from './store/user';
 import { APP_STATES } from './utils/constants';
 
 const LoaderScreen = lazy(() => import('./features/LoaderScreen').then(m => ({ default: m.LoaderScreen })));
+const DesktopBridgeScreen = lazy(() => import('./features/DesktopBridgeScreen').then(m => ({ default: m.DesktopBridgeScreen })));
 const OnboardingScreen = lazy(() => import('./features/OnboardingScreen').then(m => ({ default: m.OnboardingScreen })));
 const ModulesScreen = lazy(() => import('./features/ModulesScreen').then(m => ({ default: m.ModulesScreen })));
 const LessonsListScreen = lazy(() => import('./features/LessonsListScreen').then(m => ({ default: m.LessonsListScreen })));
@@ -18,6 +19,9 @@ const App: React.FC = () => {
     switch (appState) {
       case APP_STATES.LOADING:
         return <LoaderScreen />;
+      
+      case APP_STATES.DESKTOP_BRIDGE:
+        return <DesktopBridgeScreen />;
       
       case APP_STATES.ONBOARDING:
         return <OnboardingScreen />;

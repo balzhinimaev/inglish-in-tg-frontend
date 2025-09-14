@@ -11,6 +11,30 @@ export const getTelegramWebApp = (): TelegramWebApp | null => {
 };
 
 /**
+ * Check if the app is running inside Telegram WebApp
+ */
+export const isTelegramWebApp = (): boolean => {
+  const tg = getTelegramWebApp();
+  return !!(tg && tg.initData);
+};
+
+/**
+ * Check if user is on desktop/browser (not in Telegram app)
+ */
+export const isDesktopBrowser = (): boolean => {
+  // Check if Telegram WebApp is not available or no initData
+  if (!isTelegramWebApp()) {
+    return true;
+  }
+  
+  // Additional checks for desktop detection
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isDesktop = !(/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent));
+  
+  return isDesktop;
+};
+
+/**
  * Initialize Telegram WebApp
  */
 export const initTelegramWebApp = (): TelegramWebApp | null => {

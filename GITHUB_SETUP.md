@@ -75,6 +75,8 @@ chmod 700 ~/.ssh
 |------|-------|----------|
 | `VITE_ENABLE_ANALYTICS` | `true` | Включить аналитику |
 | `VITE_ENABLE_DEBUG_LOGGING` | `false` | Отладочные логи |
+| `VITE_BOT_USERNAME` | `englishintg_bot` | Username вашего Telegram бота |
+| `VITE_TELEGRAM_WEB_APP_URL` | `https://t.me/englishintg_bot/webapp` | URL для QR кода |
 
 ### 🐳 Настройки Docker (опционально)
 | Name | Value | Описание |

@@ -85,7 +85,7 @@ export interface UserCohortData {
 }
 
 // App State types
-export type AppState = 'loading' | 'onboarding' | 'modules' | 'lessons_list' | 'lesson' | 'paywall' | 'profile' | 'error';
+export type AppState = 'loading' | 'desktop_bridge' | 'onboarding' | 'modules' | 'lessons_list' | 'lesson' | 'paywall' | 'profile' | 'error';
 
 // API Response types
 export interface AuthVerifyResponse {

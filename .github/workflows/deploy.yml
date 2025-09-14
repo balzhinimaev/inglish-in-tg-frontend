@@ -57,6 +57,8 @@ jobs:
           VITE_ENABLE_DEBUG_LOGGING=${{ vars.VITE_ENABLE_DEBUG_LOGGING || 'false' }}
           NODE_ENV=production
           APP_PORT=${{ vars.APP_PORT || '8004' }}
+          VITE_BOT_USERNAME=${{ vars.VITE_BOT_USERNAME || 'englishintg_bot' }}
+          VITE_TELEGRAM_WEB_APP_URL=${{ vars.VITE_TELEGRAM_WEB_APP_URL || 'https://t.me/englishintg_bot/webapp' }}
 
     - name: Deploy to VPS
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
