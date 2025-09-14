@@ -24,7 +24,7 @@ export const ModulesScreen: React.FC = () => {
   const screenRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, error } = useModules({ lang: 'ru' });
-  const allModules = data?.modules || [];
+  const allModules = Array.isArray(data?.modules) ? data.modules : [];
 
   const debugLog = (...args: unknown[]) => {
     if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
@@ -39,16 +39,16 @@ export const ModulesScreen: React.FC = () => {
   debugLog('Debug button visibility:', {
     hasActiveSubscription: hasActiveSubscription(),
     entitlement: entitlement,
-    lockedModules: allModules.filter(m => !m.isAvailable),
-    hasLockedModules: allModules.some(m => !m.isAvailable),
+    lockedModules: Array.isArray(allModules) ? allModules.filter(m => !m.isAvailable) : [],
+    hasLockedModules: Array.isArray(allModules) ? allModules.some(m => !m.isAvailable) : false,
     shouldShowButtons: !hasActiveSubscription()
   });
   
   // Вычисляем модули для текущей страницы
-  const totalPages = Math.ceil(allModules.length / modulesPerPage);
+  const totalPages = Math.ceil((Array.isArray(allModules) ? allModules.length : 0) / modulesPerPage);
   const startIndex = (currentPage - 1) * modulesPerPage;
   const endIndex = startIndex + modulesPerPage;
-  const modules = allModules.slice(startIndex, endIndex);
+  const modules = Array.isArray(allModules) ? allModules.slice(startIndex, endIndex) : [];
 
   useEffect(() => {
     // Hide back button on modules screen
@@ -244,7 +244,7 @@ export const ModulesScreen: React.FC = () => {
     );
   }
 
-  if (allModules.length === 0) {
+  if (!Array.isArray(allModules) || allModules.length === 0) {
     return (
       <Screen className="flex items-center justify-center">
         <div className="text-center px-4">
@@ -469,7 +469,7 @@ export const ModulesScreen: React.FC = () => {
             {/* Additional info */}
             <div className="text-center max-[300px]:hidden">
               <p className="text-telegram-hint text-xs opacity-70">
-                Всего модулей: {allModules.length}
+                Всего модулей: {Array.isArray(allModules) ? allModules.length : 0}
               </p>
             </div>
           </div>
