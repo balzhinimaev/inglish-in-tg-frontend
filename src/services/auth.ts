@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import apiClient from './api';
 import { API_ENDPOINTS } from '../utils/constants';
-import { AuthVerifyResponse, OnboardingCompleteRequest, OnboardingStatusResponse, SaveReminderSettingsRequest, User, JwtPayload } from '../types';
+import { AuthVerifyResponse, BackendAuthVerifyResponse, OnboardingCompleteRequest, OnboardingStatusResponse, SaveReminderSettingsRequest, User, JwtPayload } from '../types';
 import { LearningGoal, DailyGoal } from '../utils/constants';
 import { getTelegramInitData } from '../utils/telegram';
 
@@ -97,7 +97,7 @@ export const useVerifyUser = () => {
         headers: response.headers
       });
 
-      const data = response.data as AuthVerifyResponse;
+      const data = response.data as BackendAuthVerifyResponse;
       
       // Store JWT token if received
       if (data.accessToken) {
@@ -107,7 +107,14 @@ export const useVerifyUser = () => {
         console.warn('No accessToken in response:', data);
       }
 
-      return data;
+      // Convert backend response to frontend format
+      const convertedData: AuthVerifyResponse = {
+        ...data,
+        userId: parseInt(data.userId), // Convert string to number for frontend
+        proficiencyLevel: data.englishLevel, // Map englishLevel to proficiencyLevel
+      };
+
+      return convertedData;
     },
     staleTime: 0, // Always refetch on mount
     retry: 3,

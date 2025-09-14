@@ -21,16 +21,28 @@ apiClient.interceptors.request.use(
                            (config.url || '').startsWith('/content/onboarding') ||
                            (config.url || '').startsWith('/payments/webhook');
 
-    // For auth/verify, use Telegram initData in query params
+    // For auth/verify, parse initData and add individual parameters
     if (isAuthVerify) {
       const initData = getTelegramInitData();
       if (initData) {
-        // Add initData directly to URL to avoid double encoding
+        // Parse initData string into individual parameters
+        const params = new URLSearchParams(initData);
+        const queryParams = new URLSearchParams();
+        
+        // Add individual parameters that backend expects
+        if (params.has('hash')) queryParams.set('hash', params.get('hash')!);
+        if (params.has('user')) queryParams.set('user', params.get('user')!);
+        if (params.has('query_id')) queryParams.set('query_id', params.get('query_id')!);
+        if (params.has('auth_date')) queryParams.set('auth_date', params.get('auth_date')!);
+        if (params.has('start_param')) queryParams.set('start_param', params.get('start_param')!);
+        
+        // Add parameters to URL
         const separator = config.url?.includes('?') ? '&' : '?';
-        config.url = `${config.url}${separator}initData=${encodeURIComponent(initData)}`;
+        config.url = `${config.url}${separator}${queryParams.toString()}`;
+        
         console.log('Auth verify request:', {
           url: config.url,
-          initData: initData.substring(0, 100) + '...',
+          parsedParams: Object.fromEntries(queryParams),
           baseURL: config.baseURL
         });
       }

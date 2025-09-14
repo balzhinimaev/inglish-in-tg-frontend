@@ -105,13 +105,26 @@ export type AppState = 'loading' | 'desktop_bridge' | 'onboarding' | 'modules' |
 
 // API Response types
 export interface AuthVerifyResponse {
-  userId: number;
+  userId: number; // Frontend expects number
   accessToken: string;
   user: ApiUser;
   isFirstOpen: boolean;
   utm?: Record<string, string>;
   onboardingCompleted: boolean;
-  proficiencyLevel?: 'beginner' | 'intermediate' | 'advanced';
+  proficiencyLevel?: 'beginner' | 'intermediate' | 'advanced' | null; // Frontend uses proficiencyLevel
+  learningGoals?: string[]; // Backend returns learningGoals array
+}
+
+// Backend response format (what we actually receive)
+export interface BackendAuthVerifyResponse {
+  userId: string; // Backend returns string
+  accessToken: string;
+  user: ApiUser;
+  isFirstOpen: boolean;
+  utm?: Record<string, string>;
+  onboardingCompleted: boolean;
+  englishLevel?: 'beginner' | 'intermediate' | 'advanced' | null; // Backend uses englishLevel
+  learningGoals?: string[]; // Backend returns learningGoals array
 }
 
 export interface OnboardingStatusResponse {
