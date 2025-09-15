@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Screen, Card, Button, Loader } from '../components';
-import { usePaywallProducts } from '../services/content';
+import { usePaywallProducts, useCreatePayment } from '../services';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { tracking } from '../services/tracking';
 import { APP_STATES } from '../utils/constants';
@@ -9,6 +9,8 @@ export const PaywallScreen: React.FC = () => {
   const { navigateTo, setupBackButton } = useAppNavigation();
   
   const { data: products = [], isLoading } = usePaywallProducts();
+  const createPaymentMutation = useCreatePayment();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Setup navigation
   useEffect(() => {
@@ -22,19 +24,46 @@ export const PaywallScreen: React.FC = () => {
     }
   }, [products]);
 
-  const handlePurchase = (productId: string, price: number, currency: string) => {
-    // Track purchase initiation
-    tracking.purchaseInitiated(productId, price, currency);
+  const handlePurchase = async (productId: string, price: number, currency: string) => {
+    try {
+      setIsProcessing(true);
+      
+      // Track purchase initiation
+      tracking.purchaseInitiated(productId, price, currency);
 
-    // In a real app, this would open Telegram invoice or payment provider
-    // For now, just show alert
-    alert(`Инициирована покупка ${productId} за ${price} ${currency}`);
-    
-    // TODO: Implement actual payment flow:
-    // 1. Create invoice via Telegram Bot API
-    // 2. Open invoice in WebApp
-    // 3. Handle payment result
-    // 4. Check subscription status periodically
+      // Map product duration to API product type
+      const product = products.find(p => p.id === productId);
+      if (!product) {
+        throw new Error('Product not found');
+      }
+
+      const productType = product.duration === 'month' ? 'monthly' : 
+                         product.duration === 'quarter' ? 'quarterly' : 'yearly';
+
+      // Get return URL from environment or use current URL
+      const returnUrl = import.meta.env.VITE_PAYMENT_RETURN_URL || window.location.origin;
+
+      // Create payment
+      const paymentData = await createPaymentMutation.mutateAsync({
+        product: productType,
+        returnUrl: returnUrl,
+      });
+
+      // Track successful payment creation
+      tracking.paymentCreated(productId, paymentData.paymentId);
+
+      // Open payment URL in new tab/window
+      window.open(paymentData.paymentUrl, '_blank');
+      
+    } catch (error) {
+      console.error('Payment creation failed:', error);
+      alert('Ошибка при создании платежа. Попробуйте еще раз.');
+      
+      // Track payment error
+      tracking.paymentError(productId, error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -139,8 +168,9 @@ export const PaywallScreen: React.FC = () => {
                   fullWidth
                   variant={product.isPopular ? 'primary' : 'secondary'}
                   onClick={() => handlePurchase(product.id, product.price, product.currency)}
+                  disabled={isProcessing || createPaymentMutation.isPending}
                 >
-                  Купить
+                  {isProcessing || createPaymentMutation.isPending ? 'Создание платежа...' : 'Купить'}
                 </Button>
               </Card>
             );
@@ -160,7 +190,7 @@ export const PaywallScreen: React.FC = () => {
         {/* Footer */}
         <div className="text-center text-telegram-hint text-sm">
           <p>
-            Безопасная оплата через Telegram.{' '}
+            Безопасная оплата через YooKassa.{' '}
             <br />
             Отмена в любое время.
           </p>

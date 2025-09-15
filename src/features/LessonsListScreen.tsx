@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { Screen, Button, Loader, PaywallBottomSheet, TabSwitch, ModuleVocabulary } from '../components';
+import { Screen, Button, Loader, TabSwitch, ModuleVocabulary } from '../components';
+import { PaywallBottomSheet } from '../components/PaywallBottomSheet';
 import { useLessons } from '../services/content';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { APP_STATES } from '../utils/constants';

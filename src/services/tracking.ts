@@ -61,6 +61,16 @@ export const tracking = {
     }),
   purchaseInitiated: (productId: string, price: number, currency: string) => 
     trackEvent(TRACKING_EVENTS.PURCHASE_INITIATED, { productId, price, currency }),
+  
+  // Payment events
+  paymentCreated: (productId: string, paymentId: string) =>
+    trackEvent('payment_created', { productId, paymentId }),
+  paymentError: (productId: string, error: string) =>
+    trackEvent('payment_error', { productId, error }),
+  paymentCompleted: (paymentId: string, amount: number, currency: string) =>
+    trackEvent('payment_completed', { paymentId, amount, currency }),
+  paymentFailed: (paymentId: string, reason: string) =>
+    trackEvent('payment_failed', { paymentId, reason }),
 
   // Generic custom event
   custom: (name: string, properties?: Record<string, any>) => 

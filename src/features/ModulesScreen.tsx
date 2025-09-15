@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Screen, Card, Button, Loader, PaywallBottomSheet } from '../components';
+import { Screen, Card, Button, Loader } from '../components';
+import { PaywallBottomSheet } from '../components/PaywallBottomSheet';
 import { useModules } from '../services/content';
 import apiClient from '../services/api';
 import { useUserStore } from '../store/user';
