@@ -29,8 +29,8 @@ export const API_ENDPOINTS = {
     TRACK: '/events',
   },
   PAYMENTS: {
-    CREATE: '/api/v2/payments/create',
-    STATUS: '/api/v2/payments/status',
+    CREATE: '/payments/create',
+    STATUS: '/payments/status',
     WEBHOOK: '/payments/webhook',
   },
   LEADS: {

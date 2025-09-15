@@ -3,6 +3,7 @@ import { BottomSheet } from './BottomSheet';
 import { Button, Card } from './';
 import { hapticFeedback } from '../utils/telegram';
 import { tracking } from '../services/tracking';
+import { useCreatePayment } from '../services/payments';
 import { getCohortPricing, getCohortOffer, validatePromoCode, applyDiscount, determineUserCohort } from '../utils/cohorts';
 import type { UserCohort, PromoCode } from '../types';
 
@@ -28,6 +29,9 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [showPromoInput, setShowPromoInput] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const createPaymentMutation = useCreatePayment();
 
   // Determine user cohort
   const cohort = propCohort || (userData ? determineUserCohort(userData) : 'default');
@@ -64,20 +68,49 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
     return originalPrice;
   };
 
-  const handleSubscribe = (planType: string, originalPrice: number) => {
-    const finalPrice = getDiscountedPrice(originalPrice, planType);
-    hapticFeedback.impact('heavy');
-    tracking.custom('subscription_selected', { 
-      plan: planType,
-      originalPrice,
-      finalPrice,
-      promoCode: appliedPromo?.code,
-      cohort,
-      source: 'bottom_sheet'
-    });
-    
-    // TODO: Implement actual subscription logic
-    alert(`Выбран план: ${planType} за ${finalPrice}₽ (было ${originalPrice}₽)`);
+  const handleSubscribe = async (planType: string, originalPrice: number) => {
+    try {
+      setIsProcessing(true);
+      const finalPrice = getDiscountedPrice(originalPrice, planType);
+      
+      hapticFeedback.impact('heavy');
+      tracking.custom('subscription_selected', { 
+        plan: planType,
+        originalPrice,
+        finalPrice,
+        promoCode: appliedPromo?.code,
+        cohort,
+        source: 'bottom_sheet'
+      });
+
+      // Map plan type to API product type
+      const productType = planType === 'monthly' ? 'monthly' : 
+                         planType === 'quarterly' ? 'quarterly' : 'yearly';
+
+      // Get return URL from environment or use current URL
+      const returnUrl = import.meta.env.VITE_PAYMENT_RETURN_URL || window.location.origin;
+
+      // Create payment
+      const paymentData = await createPaymentMutation.mutateAsync({
+        product: productType,
+        returnUrl: returnUrl,
+      });
+
+      // Track successful payment creation
+      tracking.paymentCreated(planType, paymentData.paymentId);
+
+      // Open payment URL in new tab/window
+      window.open(paymentData.paymentUrl, '_blank');
+      
+    } catch (error) {
+      console.error('Payment creation failed:', error);
+      alert('Ошибка при создании платежа. Попробуйте еще раз.');
+      
+      // Track payment error
+      tracking.paymentError(planType, error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -242,7 +275,8 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
                     handleSubscribe('yearly', pricing.yearlyPrice);
                   }}
                   onMouseEnter={() => hapticFeedback.selection()}
-                  className="relative w-full flex items-center justify-center gap-3 px-5 py-3 bg-gradient-to-r from-telegram-accent via-purple-500 to-blue-500 hover:from-telegram-accent/90 hover:via-purple-500/90 hover:to-blue-500/90 text-white font-bold text-base rounded-lg shadow-2xl hover:shadow-glow transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 animate-triple-gradient overflow-hidden group"
+                  disabled={isProcessing || createPaymentMutation.isPending}
+                  className="relative w-full flex items-center justify-center gap-3 px-5 py-3 bg-gradient-to-r from-telegram-accent via-purple-500 to-blue-500 hover:from-telegram-accent/90 hover:via-purple-500/90 hover:to-blue-500/90 text-white font-bold text-base rounded-lg shadow-2xl hover:shadow-glow transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 animate-triple-gradient overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {/* Clean shimmer effect */}
                   <div className="absolute inset-0 rounded-xl overflow-hidden opacity-0 hover:opacity-100 transition-opacity duration-300">
@@ -253,18 +287,20 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
                   <div className="relative flex flex-col items-center justify-center z-10">
                     {/* Main attractive text */}
                     <span className="text-white font-bold text-lg tracking-wide drop-shadow-lg leading-none mb-1">
-                      💎 Получить доступ
+                      {isProcessing || createPaymentMutation.isPending ? '⏳ Создание платежа...' : '💎 Получить доступ'}
                     </span>
                     
                     {/* Savings and monthly cost */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-300 font-bold text-sm drop-shadow-sm leading-none">
-                        всего 240₽/мес
-                      </span>
-                      <span className="text-green-300 font-bold text-sm drop-shadow-sm leading-none">
-                        экономия 73%
-                      </span>
-                    </div>
+                    {!(isProcessing || createPaymentMutation.isPending) && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-300 font-bold text-sm drop-shadow-sm leading-none">
+                          всего 240₽/мес
+                        </span>
+                        <span className="text-green-300 font-bold text-sm drop-shadow-sm leading-none">
+                          экономия 73%
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </button>
               </div>
@@ -302,9 +338,10 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
                   handleSubscribe('quarterly', pricing.quarterlyPrice);
                 }}
                 onMouseEnter={() => hapticFeedback.selection()}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-base rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 ease-out"
+                disabled={isProcessing || createPaymentMutation.isPending}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-base rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                🚀 Начать 90-дневный план
+                {isProcessing || createPaymentMutation.isPending ? '⏳ Создание платежа...' : '🚀 Начать 90-дневный план'}
               </button>
             </div>
           </Card>
@@ -337,9 +374,10 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
                   fullWidth
                   variant="ghost"
                   onClick={() => handleSubscribe('monthly', pricing.monthlyPrice)}
-                  className="border border-telegram-secondary-bg text-telegram-text hover:bg-telegram-secondary-bg/20"
+                  disabled={isProcessing || createPaymentMutation.isPending}
+                  className="border border-telegram-secondary-bg text-telegram-text hover:bg-telegram-secondary-bg/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Выбрать план
+                  {isProcessing || createPaymentMutation.isPending ? '⏳ Создание платежа...' : 'Выбрать план'}
                 </Button>
               </Card>
             </div>
