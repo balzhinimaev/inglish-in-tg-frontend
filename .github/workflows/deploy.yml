@@ -49,8 +49,8 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        # Force rebuild without cache to ensure latest code
+        no-cache: true
         build-args: |
           VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL || vars.VITE_API_BASE_URL || 'https://api.example.com' }}
           VITE_ENABLE_ANALYTICS=${{ vars.VITE_ENABLE_ANALYTICS || 'true' }}
@@ -89,12 +89,21 @@ jobs:
           # Login to GitHub Container Registry
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           
-          # Pull latest image
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          # Pull latest image (force update)
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest --no-cache
+          
+          # Check image creation time to verify it's fresh
+          echo "📅 Checking image creation time..."
+          docker inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest --format='{{.Created}}' || echo "⚠️ Could not get image creation time"
           
           # Stop and remove existing container
           docker stop $APP_NAME || true
           docker rm $APP_NAME || true
+          
+          # Clean up old images to free space and avoid conflicts
+          echo "🧹 Cleaning up old images..."
+          docker image prune -f || true
+          docker system prune -f || true
           
           # ===== NEW: Extract static files from Docker image =====
           echo "📁 Extracting static files for nginx..."
@@ -105,11 +114,19 @@ jobs:
           # Create nginx static directory
           sudo mkdir -p $NGINX_STATIC_PATH
           
-          # Remove old static files
+          # Remove old static files completely
           sudo rm -rf $NGINX_STATIC_PATH/*
+          
+          # Verify container has the expected files before copying
+          echo "🔍 Checking container contents..."
+          docker exec temp_${APP_NAME} ls -la /app/dist/ || echo "⚠️ Could not list dist directory"
           
           # Copy static files from container to nginx directory
           docker cp temp_${APP_NAME}:/app/dist/. $NGINX_STATIC_PATH/
+          
+          # Verify files were copied
+          echo "🔍 Verifying copied files..."
+          ls -la $NGINX_STATIC_PATH/ | head -10 || echo "⚠️ Could not list copied files"
           
           # Set proper permissions for nginx
           sudo chown -R www-data:www-data $NGINX_STATIC_PATH
