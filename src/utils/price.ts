@@ -23,7 +23,7 @@ export const rublesToKopecks = (rubles: number): number => {
 /**
  * Format price with currency symbol
  */
-export const formatPriceWithCurrency = (kopecks: number, currency: string = 'RUB'): string => {
+export const formatPriceWithCurrency = (kopecks: number, _currency: string = 'RUB'): string => {
   const rubles = kopecksToRubles(kopecks);
   return `${rubles.toLocaleString('ru-RU')}₽`;
 };

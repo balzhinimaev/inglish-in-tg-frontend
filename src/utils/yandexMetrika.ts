@@ -10,7 +10,7 @@ const YANDEX_METRIKA_ID = 104180061;
 // Initialize Yandex.Metrika
 export const initYandexMetrika = () => {
   // Check if already initialized
-  if (window.ym) {
+  if (typeof window !== 'undefined' && typeof window.ym === 'function') {
     return;
   }
 
@@ -48,7 +48,7 @@ export const initYandexMetrika = () => {
 
 // Track page view for SPA
 export const trackPageView = (url: string, title?: string) => {
-  if (window.ym) {
+  if (typeof window !== 'undefined' && typeof window.ym === 'function') {
     window.ym(YANDEX_METRIKA_ID, 'hit', url, {
       title: title || document.title,
       referer: document.referrer
@@ -58,7 +58,7 @@ export const trackPageView = (url: string, title?: string) => {
 
 // Track custom events
 export const trackEvent = (action: string, category?: string, label?: string, value?: number) => {
-  if (window.ym) {
+  if (typeof window !== 'undefined' && typeof window.ym === 'function') {
     window.ym(YANDEX_METRIKA_ID, 'reachGoal', action, {
       category,
       label,
@@ -69,7 +69,7 @@ export const trackEvent = (action: string, category?: string, label?: string, va
 
 // Track ecommerce events
 export const trackEcommerce = (action: string, data: any) => {
-  if (window.ym) {
+  if (typeof window !== 'undefined' && typeof window.ym === 'function') {
     window.ym(YANDEX_METRIKA_ID, 'ecommerce', action, data);
   }
 };
