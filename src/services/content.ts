@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from './api';
 import { API_ENDPOINTS, ModuleLevel, SupportedLanguage } from '../utils/constants';
 import { Lesson, PaywallProduct, ModulesResponse, LessonsResponse, LessonResponse, ModuleVocabularyResponse, VocabularyItem } from '../types';
+import { getUserId } from '../utils/userId';
 
 /**
  * Get lesson data
@@ -16,12 +17,61 @@ export const useLesson = (lessonId: number | string) => {
       });
       return response.data;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 0, // Disable caching
+    gcTime: 0, // Don't keep in cache
   });
 };
 
 /**
- * Get paywall products
+ * Get paywall data (products, pricing, cohort)
+ */
+export const usePaywallData = () => {
+  return useQuery({
+    queryKey: ['paywall', 'data'],
+    queryFn: async (): Promise<{
+      cohort: string;
+      pricing: {
+        cohort: string;
+        monthlyOriginalPrice: number;
+        quarterlyOriginalPrice: number;
+        yearlyOriginalPrice: number;
+        monthlyPrice: number;
+        quarterlyPrice: number;
+        yearlyPrice: number;
+        discountPercentage: number;
+        quarterlyDiscountPercentage: number;
+        yearlyDiscountPercentage: number;
+        promoCode: string;
+      };
+      products: PaywallProduct[];
+      userStats: {
+        lessonCount: number;
+        hasActiveSubscription: boolean;
+        subscriptionExpired: boolean;
+      };
+    }> => {
+      try {
+        // Получаем userId из различных источников
+        const userId = getUserId();
+        
+        // Отправляем GET запрос с userId как query параметр
+        const response = await apiClient.get(`${API_ENDPOINTS.CONTENT.PAYWALL}?userId=${userId}`);
+        return response.data;
+      } catch (error) {
+        // Если API недоступен, используем mock данные
+        if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+          console.log('Paywall API not available, using mock data:', error);
+        }
+        return getMockPaywallData();
+      }
+    },
+    staleTime: 0, // Disable caching
+    gcTime: 0, // Don't keep in cache
+  });
+};
+
+/**
+ * Get paywall products (legacy - for backward compatibility)
  */
 export const usePaywallProducts = () => {
   return useQuery({
@@ -39,7 +89,8 @@ export const usePaywallProducts = () => {
         return getMockPaywallProducts();
       }
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 0, // Disable caching
+    gcTime: 0, // Don't keep in cache
   });
 };
 
@@ -59,7 +110,8 @@ export const useModules = (params?: { level?: ModuleLevel; lang?: SupportedLangu
       // API returns array directly, not wrapped in object
       return { modules: response.data } as ModulesResponse;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Disable caching
+    gcTime: 0, // Don't keep in cache
   });
 };
 
@@ -96,7 +148,8 @@ export const useLessons = (params: { moduleRef: string; lang?: SupportedLanguage
       const legacyLessons = Array.isArray(legacyResp.data) ? legacyResp.data : legacyResp.data?.lessons;
       return { lessons: legacyLessons || [] } as LessonsResponse;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Disable caching
+    gcTime: 0, // Don't keep in cache
   });
 };
 
@@ -144,7 +197,8 @@ export const useDetailedLesson = (params: { lessonRef: string; lang?: SupportedL
         throw error;
       }
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 0, // Disable caching
+    gcTime: 0, // Don't keep in cache
   });
 };
 
@@ -811,7 +865,8 @@ export const useModuleVocabulary = (params: { moduleRef: string; lang?: Supporte
         return getMockModuleVocabulary(params.moduleRef);
       }
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 0, // Disable caching
+    gcTime: 0, // Don't keep in cache
   });
 };
 
@@ -825,7 +880,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Hello',
       translation: 'Привет',
       transcription: '[həˈləʊ]',
-      pronunciation: '/audio/hello.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'interjection',
       difficulty: 'easy',
       examples: [
@@ -843,7 +898,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Airport',
       translation: 'Аэропорт',
       transcription: '[ˈeəpɔːt]',
-      pronunciation: '/audio/airport.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'noun',
       difficulty: 'easy',
       examples: [
@@ -865,7 +920,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Ticket',
       translation: 'Билет',
       transcription: '[ˈtɪkɪt]',
-      pronunciation: '/audio/ticket.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'noun',
       difficulty: 'easy',
       examples: [
@@ -883,7 +938,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Boarding pass',
       translation: 'Посадочный талон',
       transcription: '[ˈbɔːdɪŋ pɑːs]',
-      pronunciation: '/audio/boarding-pass.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'noun',
       difficulty: 'medium',
       examples: [
@@ -901,7 +956,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Gate',
       translation: 'Выход на посадку',
       transcription: '[ɡeɪt]',
-      pronunciation: '/audio/gate.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'noun',
       difficulty: 'easy',
       examples: [
@@ -919,7 +974,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Departure',
       translation: 'Отправление',
       transcription: '[dɪˈpɑːtʃə]',
-      pronunciation: '/audio/departure.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'noun',
       difficulty: 'medium',
       examples: [
@@ -937,7 +992,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Arrival',
       translation: 'Прибытие',
       transcription: '[əˈraɪvəl]',
-      pronunciation: '/audio/arrival.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'noun',
       difficulty: 'medium',
       examples: [
@@ -955,7 +1010,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Luggage',
       translation: 'Багаж',
       transcription: '[ˈlʌɡɪdʒ]',
-      pronunciation: '/audio/luggage.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'noun',
       difficulty: 'easy',
       examples: [
@@ -973,7 +1028,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Passport',
       translation: 'Паспорт',
       transcription: '[ˈpɑːspɔːt]',
-      pronunciation: '/audio/passport.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'noun',
       difficulty: 'easy',
       examples: [
@@ -991,7 +1046,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Customs',
       translation: 'Таможня',
       transcription: '[ˈkʌstəmz]',
-      pronunciation: '/audio/customs.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'noun',
       difficulty: 'medium',
       examples: [
@@ -1009,7 +1064,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Security',
       translation: 'Безопасность',
       transcription: '[sɪˈkjʊərəti]',
-      pronunciation: '/audio/security.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'noun',
       difficulty: 'medium',
       examples: [
@@ -1027,7 +1082,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Excuse me',
       translation: 'Извините',
       transcription: '[ɪkˈskjuːz miː]',
-      pronunciation: '/audio/excuse-me.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'interjection',
       difficulty: 'easy',
       examples: [
@@ -1045,7 +1100,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Thank you',
       translation: 'Спасибо',
       transcription: '[θæŋk juː]',
-      pronunciation: '/audio/thank-you.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'interjection',
       difficulty: 'easy',
       examples: [
@@ -1063,7 +1118,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Please',
       translation: 'Пожалуйста',
       transcription: '[pliːz]',
-      pronunciation: '/audio/please.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'adverb',
       difficulty: 'easy',
       examples: [
@@ -1081,7 +1136,7 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
       word: 'Where',
       translation: 'Где',
       transcription: '[weə]',
-      pronunciation: '/audio/where.mp3',
+      pronunciation: 'https://englishintg.ru/audio/a0.basics.001.t1.hello.mp3',
       partOfSpeech: 'adverb',
       difficulty: 'easy',
       examples: [
@@ -1104,7 +1159,71 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
 }
 
 /**
- * Mock paywall products data
+ * Mock paywall data (full response)
+ */
+function getMockPaywallData() {
+  return {
+    cohort: 'default',
+    pricing: {
+      cohort: 'default',
+      monthlyOriginalPrice: 99000, // 990₽ in kopecks
+      quarterlyOriginalPrice: 149000, // 1490₽ in kopecks
+      yearlyOriginalPrice: 299000, // 2990₽ in kopecks
+      monthlyPrice: 89900, // 899₽ in kopecks
+      quarterlyPrice: 119900, // 1199₽ in kopecks
+      yearlyPrice: 248900, // 2489₽ in kopecks
+      discountPercentage: 10,
+      quarterlyDiscountPercentage: 20,
+      yearlyDiscountPercentage: 17,
+      promoCode: 'DEFAULT10'
+    },
+    products: [
+      {
+        id: 'monthly',
+        name: 'Месяц',
+        description: 'Полный доступ ко всем урокам',
+        price: 89900, // 899₽ in kopecks
+        originalPrice: 99000, // 990₽ in kopecks
+        currency: 'RUB',
+        duration: 'month' as const,
+        discount: 10,
+        isPopular: true
+      },
+      {
+        id: 'quarterly',
+        name: '3 месяца',
+        description: 'Экономия 56% против помесячки • ~400₽/месяц',
+        price: 119900, // 1199₽ in kopecks
+        originalPrice: 149000, // 1490₽ in kopecks
+        currency: 'RUB',
+        duration: 'quarter' as const,
+        discount: 20,
+        monthlyEquivalent: 39967, // ~400₽ in kopecks
+        savingsPercentage: 56
+      },
+      {
+        id: 'yearly',
+        name: 'Год',
+        description: 'Экономия 77% против помесячки • ~207₽/месяц',
+        price: 248900, // 2489₽ in kopecks
+        originalPrice: 299000, // 2990₽ in kopecks
+        currency: 'RUB',
+        duration: 'year' as const,
+        discount: 17,
+        monthlyEquivalent: 20742, // ~207₽ in kopecks
+        savingsPercentage: 77
+      }
+    ],
+    userStats: {
+      lessonCount: 0,
+      hasActiveSubscription: false,
+      subscriptionExpired: false
+    }
+  };
+}
+
+/**
+ * Mock paywall products data (legacy)
  */
 function getMockPaywallProducts(): PaywallProduct[] {
   return [

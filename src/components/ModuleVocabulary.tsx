@@ -1,24 +1,30 @@
 import React, { useState, useMemo } from 'react';
 import { useModuleVocabulary } from '../services/content';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 import { Loader } from './Loader';
 import { hapticFeedback } from '../utils/telegram';
+import { APP_STATES } from '../utils/constants';
+import { useAudioPlayback } from '../utils/audio';
 
 interface ModuleVocabularyProps {
   moduleRef: string;
   moduleTitle?: string;
+  preloadedAudio?: Map<string, HTMLAudioElement>;
 }
 
 type VocabularyFilter = 'all' | 'learned' | 'not_learned';
 type VocabularySortBy = 'alphabetical' | 'difficulty' | 'learned_status';
 
 export const ModuleVocabulary: React.FC<ModuleVocabularyProps> = ({
-  moduleRef
+  moduleRef,
+  preloadedAudio
 }) => {
+  const { navigateTo } = useAppNavigation();
   const [selectedFilter, setSelectedFilter] = useState<VocabularyFilter>('all');
   const [sortBy, setSortBy] = useState<VocabularySortBy>('alphabetical');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [expandedWord, setExpandedWord] = useState<string | null>(null);
-  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const { playingAudio, playAudio } = useAudioPlayback();
 
   const { data, isLoading } = useModuleVocabulary({ 
     moduleRef, 
@@ -80,15 +86,35 @@ export const ModuleVocabulary: React.FC<ModuleVocabularyProps> = ({
   };
 
   const handleAudioPlay = (wordId: string, audioUrl?: string) => {
-    if (!audioUrl) return;
+    if (!audioUrl) {
+      console.warn('No audio URL provided for word:', wordId);
+      return;
+    }
     
     hapticFeedback.selection();
-    setPlayingAudio(wordId);
     
-    // Mock audio play - in real app, would play actual audio
-    setTimeout(() => {
-      setPlayingAudio(null);
-    }, 1500);
+    // Check if we have a preloaded audio element
+    const preloadedAudioElement = preloadedAudio?.get(audioUrl);
+    
+    if (preloadedAudioElement) {
+      // Use preloaded audio for instant playback
+      console.log('Using preloaded audio for:', audioUrl);
+      try {
+        preloadedAudioElement.currentTime = 0; // Reset to beginning
+        preloadedAudioElement.play().catch((error) => {
+          console.warn('Failed to play preloaded audio:', error);
+          // Fallback to regular audio playback
+          playAudio(audioUrl, wordId);
+        });
+      } catch (error) {
+        console.warn('Error with preloaded audio:', error);
+        // Fallback to regular audio playback
+        playAudio(audioUrl, wordId);
+      }
+    } else {
+      // Use the regular audio playback utility
+      playAudio(audioUrl, wordId);
+    }
   };
 
   const getDifficultyColor = (difficulty?: string) => {
@@ -185,6 +211,28 @@ export const ModuleVocabulary: React.FC<ModuleVocabularyProps> = ({
         <div className="text-center mt-2 text-sm text-telegram-hint">
           {stats.progressPercentage}% изучено
         </div>
+
+        {/* Vocabulary Test Button */}
+        {stats.total > 0 && (
+          <div className="mt-4 pt-4 border-t border-telegram-accent/20">
+            <button
+              onClick={() => {
+                hapticFeedback.selection();
+                navigateTo(APP_STATES.VOCABULARY_TEST, { moduleRef });
+              }}
+              className="w-full bg-gradient-to-r from-telegram-accent to-blue-600 hover:from-telegram-accent/90 hover:to-blue-600/90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 12l2 2 4-4"/>
+                <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"/>
+                <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3"/>
+                <path d="M13 12h3"/>
+                <path d="M8 12h3"/>
+              </svg>
+              <span>Начать тестирование словаря</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filters */}

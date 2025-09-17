@@ -58,14 +58,14 @@ export const LessonProgress: React.FC<LessonProgressProps> = ({
           return (
             <div
               key={dotIndex}
-              className={`w-2 h-2 rounded-full transition-all duration-200 ${
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
                 isCompleted
-                  ? 'bg-green-500 scale-100'
+                  ? 'bg-gradient-to-br from-green-400 to-emerald-600 scale-100 shadow-lg shadow-green-500/30 border border-green-300/50'
                   : isCurrent
-                  ? 'bg-telegram-accent scale-125 shadow-glow'
+                  ? 'bg-gradient-to-br from-telegram-accent via-blue-500 to-purple-600 scale-125 shadow-glow shadow-telegram-accent/40 border border-white/20'
                   : isUpcoming
-                  ? 'bg-telegram-hint/30 scale-75'
-                  : 'bg-telegram-hint/30 scale-75'
+                  ? 'bg-gradient-to-br from-slate-600 to-slate-700 scale-100 border-2 border-slate-400/60 shadow-md shadow-slate-500/20 hover:from-slate-500 hover:to-slate-600'
+                  : 'bg-gradient-to-br from-slate-600 to-slate-700 scale-100 border-2 border-slate-400/60 shadow-md shadow-slate-500/20 hover:from-slate-500 hover:to-slate-600'
               }`}
             />
           );

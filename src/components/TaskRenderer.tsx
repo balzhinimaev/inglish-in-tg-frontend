@@ -21,6 +21,8 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({
   const [showTranscript, setShowTranscript] = useState(false);
   const [selectedBlanks, setSelectedBlanks] = useState<string[]>([]);
   const [matches, setMatches] = useState<{[key: string]: string}>({});
+  // Audio playback functionality is available but not implemented in this component yet
+  // const { playAudio } = useAudioPlayback();
 
   // Reset state when task changes
   useEffect(() => {
@@ -114,8 +116,9 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({
               <div className="animate-fade-in space-y-3">
                 <Button
                   fullWidth
+                  variant="primary"
                   onClick={() => onAnswer('correct')}
-                  className="bg-green-600 hover:bg-green-700 text-white hover:scale-105 transition-all duration-200 hover:shadow-lg transform"
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white hover:scale-105 transition-all duration-200 hover:shadow-lg transform border-green-400/30 hover:border-green-300/50"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <span className="text-lg">✓</span>
@@ -126,7 +129,7 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({
                   fullWidth
                   variant="ghost"
                   onClick={() => onAnswer('incorrect')}
-                  className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 hover:scale-105 transition-all duration-200"
+                  className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/20 hover:scale-105 transition-all duration-200 border border-orange-500/30 hover:border-orange-400/50"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <span className="text-lg">⏱</span>
@@ -209,7 +212,7 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({
             </span>
           </Button>
           
-          {onSkip && (
+          {onSkip && task.type !== 'multiple_choice' && (
             <Button
               fullWidth
               variant="ghost"

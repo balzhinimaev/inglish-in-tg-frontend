@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Screen, Button, Loader, TabSwitch, ModuleVocabulary } from '../components';
 import { PaywallBottomSheet } from '../components/PaywallBottomSheet';
-import { useLessons } from '../services/content';
+import { useLessons, useModuleVocabulary } from '../services/content';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { APP_STATES } from '../utils/constants';
 import { tracking } from '../services/tracking';
 import { hapticFeedback } from '../utils/telegram';
+import { useAudioPreload } from '../utils/audio';
 import type { LessonItem, LessonType, LessonDifficulty, TaskType, TaskTypeInfo } from '../types';
 
 // Premium octagonal card styles
@@ -501,6 +502,81 @@ const getDefaultTaskTypes = (lessonType: LessonType): TaskType[] => {
   return taskTypesMap[lessonType] || ['flashcard', 'multiple_choice'];
 };
 
+// Map API task types to internal TaskType format
+const mapApiTaskTypes = (apiTaskTypes: string[]): TaskType[] => {
+  const taskTypeMapping: Record<string, TaskType> = {
+    'choice': 'multiple_choice',
+    'translate': 'flashcard', // Assuming translate tasks are flashcards
+    'gap': 'gap_fill',
+    'listening': 'listening',
+    'matching': 'matching',
+    'flashcard': 'flashcard',
+    'multiple_choice': 'multiple_choice',
+    'gap_fill': 'gap_fill'
+  };
+  
+  const mappedTypes = apiTaskTypes
+    .map(type => taskTypeMapping[type])
+    .filter((type): type is TaskType => type !== undefined);
+  
+  // Debug logging
+  if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+    console.log('Mapping API task types:', apiTaskTypes, '->', mappedTypes);
+  }
+  
+  return mappedTypes;
+};
+
+// Get available lesson types from current lessons
+const getAvailableLessonTypes = (lessons: LessonItem[]): Array<{key: LessonType | 'all', label: string, icon: string}> => {
+  const availableTypes = new Set<LessonType>();
+  
+  lessons.forEach(lesson => {
+    if (lesson.type) {
+      availableTypes.add(lesson.type);
+    }
+  });
+  
+  const typeLabels: Record<LessonType, string> = {
+    conversation: 'Разговор',
+    vocabulary: 'Словарь', 
+    listening: 'Аудирование',
+    grammar: 'Грамматика',
+    speaking: 'Говорение',
+    reading: 'Чтение',
+    writing: 'Письмо'
+  };
+  
+  const typeIcons: Record<LessonType, string> = {
+    conversation: '💬',
+    vocabulary: '📚',
+    listening: '🎧', 
+    grammar: '📝',
+    speaking: '🎤',
+    reading: '📖',
+    writing: '✍️'
+  };
+  
+  const options: Array<{key: LessonType | 'all', label: string, icon: string}> = [
+    { key: 'all', label: 'Все', icon: '📚' }
+  ];
+  
+  // Add available types in a consistent order
+  const typeOrder: LessonType[] = ['vocabulary', 'grammar', 'listening', 'speaking', 'reading', 'writing', 'conversation'];
+  
+  typeOrder.forEach(type => {
+    if (availableTypes.has(type)) {
+      options.push({
+        key: type,
+        label: typeLabels[type],
+        icon: typeIcons[type]
+      });
+    }
+  });
+  
+  return options;
+};
+
 const getLessonTypeIcon = (type?: LessonType) => {
   if (!type) return "📚";
   const icons = {
@@ -685,6 +761,18 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
     moduleRef, 
     lang: 'ru' 
   });
+
+  // Audio preloading hook
+  const { isPreloading, preloadAudioFiles, getPreloadedAudio } = useAudioPreload();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [preloadedAudioMap, setPreloadedAudioMap] = useState<Map<string, HTMLAudioElement>>(new Map());
+  const [loadedAudioUrls, setLoadedAudioUrls] = useState<Set<string>>(new Set());
+
+  // Get vocabulary data for audio preloading
+  const { data: vocabularyData } = useModuleVocabulary({ 
+    moduleRef, 
+    lang: 'ru' 
+  });
   
   // Enhanced mock data with sequential progression logic
   const mockLessons: LessonItem[] = useMemo(() => {
@@ -697,7 +785,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
       xpReward: lesson.xpReward || 20,
       hasAudio: lesson.hasAudio || false,
       hasVideo: lesson.hasVideo || false,
-      taskTypes: lesson.taskTypes || getDefaultTaskTypes(lesson.type || 'vocabulary')
+      taskTypes: lesson.taskTypes ? mapApiTaskTypes(lesson.taskTypes) : getDefaultTaskTypes(lesson.type || 'vocabulary')
     }));
 
     // Apply sequential progression logic to API lessons
@@ -1213,16 +1301,57 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
     }
   };
 
-  const filterOptions: Array<{key: LessonType | 'all', label: string, icon: string}> = [
-    { key: 'all', label: 'Все', icon: '📚' },
-    { key: 'conversation', label: 'Разговор', icon: '💬' },
-    { key: 'vocabulary', label: 'Словарь', icon: '📚' },
-    { key: 'listening', label: 'Аудирование', icon: '🎧' },
-    { key: 'grammar', label: 'Грамматика', icon: '📝' },
-    { key: 'speaking', label: 'Говорение', icon: '🎤' },
-    { key: 'reading', label: 'Чтение', icon: '📖' },
-    { key: 'writing', label: 'Письмо', icon: '✍️' }
-  ];
+  // Get dynamic filter options based on available lesson types
+  const filterOptions = useMemo(() => {
+    const options = getAvailableLessonTypes(mockLessons);
+    
+    // Debug logging
+    if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+      console.log('Available lesson types:', options.map(o => o.key));
+    }
+    
+    return options;
+  }, [mockLessons]);
+
+  // Reset filter if selected type is no longer available
+  useEffect(() => {
+    const availableKeys = filterOptions.map(option => option.key);
+    if (!availableKeys.includes(selectedFilter)) {
+      setSelectedFilter('all');
+    }
+  }, [filterOptions, selectedFilter]);
+
+  // Preload audio when switching to vocabulary tab (silent background loading)
+  useEffect(() => {
+    if (activeTab === 'vocabulary' && vocabularyData?.vocabulary && !isPreloading) {
+      const audioUrls = vocabularyData.vocabulary
+        .map(item => item.pronunciation)
+        .filter(Boolean) as string[];
+      
+      // Check if we need to load any new audio files
+      const newAudioUrls = audioUrls.filter(url => !loadedAudioUrls.has(url));
+      
+      if (newAudioUrls.length > 0) {
+        console.log('Silently preloading audio for vocabulary tab:', newAudioUrls.length, 'files');
+        setLoadedAudioUrls(prev => new Set([...prev, ...newAudioUrls]));
+        
+        // Start preloading immediately
+        preloadAudioFiles(newAudioUrls).then(() => {
+          // Update the preloaded audio map after preloading is complete
+          setPreloadedAudioMap(prevMap => {
+            const newMap = new Map(prevMap);
+            newAudioUrls.forEach(url => {
+              const audio = getPreloadedAudio(url);
+              if (audio) {
+                newMap.set(url, audio);
+              }
+            });
+            return newMap;
+          });
+        });
+      }
+    }
+  }, [activeTab, vocabularyData, preloadAudioFiles, getPreloadedAudio, isPreloading, loadedAudioUrls]);
 
   if (isLoading) {
     return (
@@ -1922,7 +2051,8 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
         {activeTab === 'vocabulary' && (
           <ModuleVocabulary 
             moduleRef={moduleRef} 
-            moduleTitle={moduleTitle} 
+            moduleTitle={moduleTitle}
+            preloadedAudio={preloadedAudioMap}
           />
         )}
 

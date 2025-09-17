@@ -1,5 +1,6 @@
 // User types
 export interface User {
+  _id: string;                       // MongoDB document ID
   userId: number;                    // Telegram User ID
   firstName?: string;                // Имя из Telegram
   lastName?: string;                 // Фамилия из Telegram  
@@ -11,6 +12,18 @@ export interface User {
   firstUtm?: Record<string, string>; // UTM метки первого визита
   lastUtm?: Record<string, string>;  // UTM метки последнего визита
   isFirstOpen?: boolean;             // Первый ли это визит (deprecated, will be removed)
+  learningGoals?: string[];          // Array of learning goals
+  notificationsAllowed?: boolean;    // Notification settings
+  tz?: string;                       // Timezone
+  xpTotal?: number;                  // Total XP points
+  dailyGoalMinutes?: number;         // Daily goal in minutes
+  reminderSettings?: {               // Reminder settings
+    enabled: boolean;
+    time: 'morning' | 'afternoon' | 'evening';
+  };
+  createdAt?: Date;                  // Creation date
+  updatedAt?: Date;                  // Last update date
+  __v?: number;                      // MongoDB version key
 }
 
 // JWT Token types
@@ -54,11 +67,14 @@ export interface PaywallProduct {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number; // Price in kopecks
+  originalPrice?: number; // Original price in kopecks
   currency: string;
   duration: 'month' | 'quarter' | 'year';
   discount?: number;
   isPopular?: boolean;
+  monthlyEquivalent?: number; // Monthly equivalent price in kopecks
+  savingsPercentage?: number; // Savings percentage compared to monthly
 }
 
 // Promo code and cohort system
@@ -101,7 +117,7 @@ export interface UserCohortData {
 }
 
 // App State types
-export type AppState = 'loading' | 'desktop_bridge' | 'onboarding' | 'modules' | 'lessons_list' | 'lesson' | 'paywall' | 'profile' | 'error';
+export type AppState = 'loading' | 'desktop_bridge' | 'onboarding' | 'modules' | 'lessons_list' | 'lesson' | 'vocabulary_test' | 'paywall' | 'profile' | 'error';
 
 // API Response types
 export interface AuthVerifyResponse {
@@ -135,6 +151,7 @@ export interface OnboardingStatusResponse {
 
 // API Response User type (dates come as strings from API)
 export interface ApiUser {
+  _id: string;                       // MongoDB document ID
   userId: number;                    
   firstName?: string;                
   lastName?: string;                 
@@ -146,6 +163,18 @@ export interface ApiUser {
   firstUtm?: Record<string, string>; 
   lastUtm?: Record<string, string>;  
   isFirstOpen?: boolean;             
+  learningGoals?: string[];          // Array of learning goals
+  notificationsAllowed?: boolean;    // Notification settings
+  tz?: string;                       // Timezone
+  xpTotal?: number;                  // Total XP points
+  dailyGoalMinutes?: number;         // Daily goal in minutes
+  reminderSettings?: {               // Reminder settings
+    enabled: boolean;
+    time: 'morning' | 'afternoon' | 'evening';
+  };
+  createdAt?: string;                // Creation date
+  updatedAt?: string;                // Last update date
+  __v?: number;                      // MongoDB version key
 }
 
 export interface ProfileResponse {
@@ -244,6 +273,78 @@ export interface VocabularyItem {
   lessonRefs?: string[]; // Which lessons this word appears in
   imageUrl?: string;
   isLearned?: boolean;
+}
+
+// Vocabulary Statistics API types
+export interface VocabularyStatsResponse {
+  summary: {
+    learned: number;
+    learning: number;
+    notStarted: number;
+    total: number;
+    learnedPercentage: number;
+  };
+  byDifficulty: {
+    easy: VocabularyDifficultyStats;
+    medium: VocabularyDifficultyStats;
+    hard: VocabularyDifficultyStats;
+  };
+  byCategory: {
+    [categoryKey: string]: VocabularyCategoryStats;
+  };
+  byPartOfSpeech: {
+    [partOfSpeech: string]: VocabularyPartOfSpeechStats;
+  };
+  recentActivity: VocabularyActivityItem[];
+  streak: {
+    current: number;
+    longest: number;
+    lastLearnedAt?: string; // ISO date string
+  };
+  weeklyProgress: {
+    week: string; // YYYY-WW format
+    learned: number;
+    reviewed: number;
+    totalTimeSpent: number; // in minutes
+  }[];
+}
+
+export interface VocabularyDifficultyStats {
+  learned: number;
+  learning: number;
+  notStarted: number;
+  total: number;
+  learnedPercentage: number;
+  averageTimeToLearn?: number; // in minutes
+}
+
+export interface VocabularyCategoryStats {
+  categoryKey: string;
+  categoryName: string; // Localized name
+  learned: number;
+  learning: number;
+  notStarted: number;
+  total: number;
+  learnedPercentage: number;
+  priority: 'high' | 'medium' | 'low'; // Based on user's learning goals
+}
+
+export interface VocabularyPartOfSpeechStats {
+  partOfSpeech: string;
+  learned: number;
+  total: number;
+  learnedPercentage: number;
+}
+
+export interface VocabularyActivityItem {
+  id: string;
+  wordId: string;
+  word: string;
+  action: 'learned' | 'reviewed' | 'forgot';
+  timestamp: string; // ISO date string
+  difficulty: 'easy' | 'medium' | 'hard';
+  timeSpent: number; // in seconds
+  score?: number; // 0-100, for reviews
 }
 
 export interface ModuleVocabularyResponse {

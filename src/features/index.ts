@@ -3,6 +3,7 @@ export { DesktopBridgeScreen } from './DesktopBridgeScreen';
 export { OnboardingScreen } from './OnboardingScreen';
 export { LessonScreen } from './LessonScreen';
 export { LessonsListScreen } from './LessonsListScreen';
+export { VocabularyTestScreen } from './VocabularyTestScreen';
 export { PaywallScreen } from './PaywallScreen';
 export { ProfileScreen } from './ProfileScreen';
 export { ErrorScreen } from './ErrorScreen';

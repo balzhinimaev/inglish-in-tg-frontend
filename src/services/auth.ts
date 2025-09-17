@@ -67,6 +67,7 @@ export const jwtUtils = {
  */
 const convertApiUserToUser = (telegramUser: any): User => {
   return {
+    _id: `telegram_${telegramUser.id}`, // Generate a temporary ID for Telegram users
     userId: telegramUser.id,
     firstName: telegramUser.first_name,
     lastName: telegramUser.last_name,

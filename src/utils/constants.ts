@@ -19,8 +19,11 @@ export const API_ENDPOINTS = {
     LESSON_DETAIL_V2: '/content/v2/lessons', // detail by lessonRef
     MODULES: '/content/v2/modules', // Updated to match backend
     VOCABULARY: '/content/vocabulary',
-    PAYWALL: '/content/paywall',
+    PAYWALL: '/paywall', // Updated to match new API endpoint
     ONBOARDING: '/content/onboarding',
+  },
+  VOCABULARY: {
+    STATS: '/vocabulary/stats',
   },
   ENTITLEMENTS: {
     GET: '/entitlements',
@@ -49,6 +52,7 @@ export const APP_STATES = {
   MODULES: 'modules',
   LESSONS_LIST: 'lessons_list',
   LESSON: 'lesson',
+  VOCABULARY_TEST: 'vocabulary_test', // Vocabulary testing screen
   PAYWALL: 'paywall',
   PROFILE: 'profile',
   ERROR: 'error',

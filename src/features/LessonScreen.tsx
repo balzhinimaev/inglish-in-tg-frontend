@@ -4,6 +4,7 @@ import { useUserStore } from '../store/user';
 import { useDetailedLesson } from '../services/content';
 import { useEntitlements } from '../services/entitlements';
 import { useAppNavigation } from '../hooks/useAppNavigation';
+import { useTrackAction } from '../hooks/useYandexMetrika';
 import { tracking } from '../services/tracking';
 import { APP_STATES } from '../utils/constants';
 import { hideMainButton, hapticFeedback } from '../utils/telegram';
@@ -13,6 +14,7 @@ interface LessonScreenProps {}
 export const LessonScreen: React.FC<LessonScreenProps> = () => {
   const { user, hasActiveSubscription } = useUserStore();
   const { navigateTo, setupBackButton, navigationParams } = useAppNavigation();
+  const { trackLessonStart, trackLessonComplete } = useTrackAction();
   
   // Get lessonRef from navigation parameters
   const lessonRef = navigationParams?.lessonRef || '';
@@ -50,10 +52,12 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
   useEffect(() => {
     if (lesson && !hasStartedLesson) {
       tracking.lessonStarted(lesson.lessonRef);
+      // Track in Yandex.Metrika
+      trackLessonStart(lesson.lessonRef, lesson.moduleRef);
       setHasStartedLesson(true);
       setLessonStartTime(new Date());
     }
-  }, [lesson, hasStartedLesson]);
+  }, [lesson, hasStartedLesson, trackLessonStart]);
 
   // Initialize lesson state based on progress
   useEffect(() => {
@@ -94,14 +98,12 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     }
     
     // Move to next task or show results
-    setTimeout(() => {
-      if (currentTaskIndex < tasks.length - 1) {
-        setCurrentTaskIndex(prev => prev + 1);
-      } else {
-        setShowResults(true);
-        handleCompleteLesson();
-      }
-    }, 1000);
+    if (currentTaskIndex < tasks.length - 1) {
+      setCurrentTaskIndex(prev => prev + 1);
+    } else {
+      setShowResults(true);
+      handleCompleteLesson();
+    }
   };
 
   const handleTaskSkip = () => {
@@ -140,6 +142,8 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     const score = Math.round((completedTasks.length / tasks.length) * 100);
     
     tracking.lessonCompleted(lesson.lessonRef, duration);
+    // Track in Yandex.Metrika
+    trackLessonComplete(lesson.lessonRef, lesson.moduleRef);
     tracking.custom('lesson_completed_detailed', {
       lessonRef: lesson.lessonRef,
       duration,
@@ -419,33 +423,39 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         )}
 
         {/* Navigation Controls */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={handlePreviousTask}
-            disabled={currentTaskIndex === 0}
-            className="flex items-center gap-2 disabled:opacity-50"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 18l-6-6 6-6"/>
-            </svg>
-            Назад
-          </Button>
-
-          <div className="text-xs text-telegram-hint">
-            {currentTaskIndex + 1} / {tasks.length}
+        <div className="space-y-3">
+          {/* Progress indicator - always visible */}
+          <div className="text-center">
+            <div className="text-xs text-telegram-hint">
+              {currentTaskIndex + 1} / {tasks.length}
+            </div>
           </div>
+          
+          {/* Buttons - responsive layout */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <Button
+              variant="ghost"
+              onClick={handlePreviousTask}
+              disabled={currentTaskIndex === 0}
+              className="flex items-center justify-center gap-2 disabled:opacity-50 order-2 sm:order-1"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 18l-6-6 6-6"/>
+              </svg>
+              Назад
+            </Button>
 
-          <Button
-            variant="ghost"
-            onClick={handleTaskSkip}
-            className="flex items-center gap-2 text-telegram-hint"
-          >
-            Пропустить
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </Button>
+            <Button
+              variant="ghost"
+              onClick={handleTaskSkip}
+              className="flex items-center justify-center gap-2 text-telegram-hint order-1 sm:order-2"
+            >
+              Пропустить
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </Button>
+          </div>
         </div>
       </div>
     </Screen>

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import './index.css';
 import { initTelegramWebApp } from './utils/telegram';
+import { initYandexMetrika } from './utils/yandexMetrika';
 
 // Force dark theme before any rendering
 document.documentElement.style.setProperty('--tg-theme-bg-color', '#121212');
@@ -13,6 +14,9 @@ document.body.style.color = '#ffffff';
 
 // Initialize Telegram WebApp
 initTelegramWebApp();
+
+// Initialize Yandex.Metrika
+initYandexMetrika();
 
 // Create a query client
 const queryClient = new QueryClient({

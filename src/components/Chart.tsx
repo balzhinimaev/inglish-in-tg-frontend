@@ -57,7 +57,7 @@ export const Chart: React.FC<ChartProps> = ({
   }[type];
 
   return (
-    <div className={`w-full h-64 ${className}`}>
+    <div className={`w-full h-full ${className}`}>
       <ChartComponent data={data} options={defaultOptions} />
     </div>
   );

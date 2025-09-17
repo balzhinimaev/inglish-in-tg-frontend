@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { useUserStore } from './store/user';
 import { APP_STATES } from './utils/constants';
+import { useYandexMetrika } from './hooks/useYandexMetrika';
 
 const LoaderScreen = lazy(() => import('./features/LoaderScreen').then(m => ({ default: m.LoaderScreen })));
 const DesktopBridgeScreen = lazy(() => import('./features/DesktopBridgeScreen').then(m => ({ default: m.DesktopBridgeScreen })));
@@ -8,12 +9,16 @@ const OnboardingScreen = lazy(() => import('./features/OnboardingScreen').then(m
 const ModulesScreen = lazy(() => import('./features/ModulesScreen').then(m => ({ default: m.ModulesScreen })));
 const LessonsListScreen = lazy(() => import('./features/LessonsListScreen').then(m => ({ default: m.LessonsListScreen })));
 const LessonScreen = lazy(() => import('./features/LessonScreen').then(m => ({ default: m.LessonScreen })));
+const VocabularyTestScreen = lazy(() => import('./features/VocabularyTestScreen').then(m => ({ default: m.VocabularyTestScreen })));
 const PaywallScreen = lazy(() => import('./features/PaywallScreen').then(m => ({ default: m.PaywallScreen })));
 const ProfileScreen = lazy(() => import('./features/ProfileScreen').then(m => ({ default: m.ProfileScreen })));
 const ErrorScreen = lazy(() => import('./features/ErrorScreen').then(m => ({ default: m.ErrorScreen })));
 
 const App: React.FC = () => {
   const { appState, navigationParams } = useUserStore();
+  
+  // Track screen changes for Yandex.Metrika
+  useYandexMetrika();
 
   const renderScreen = () => {
     switch (appState) {
@@ -37,6 +42,12 @@ const App: React.FC = () => {
       
       case APP_STATES.LESSON:
         return <LessonScreen />;
+      
+      case APP_STATES.VOCABULARY_TEST:
+        return <VocabularyTestScreen 
+          moduleRef={navigationParams.moduleRef} 
+          moduleTitle={navigationParams.moduleTitle}
+        />;
       
       case APP_STATES.PAYWALL:
         return <PaywallScreen />;

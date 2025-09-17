@@ -3,8 +3,9 @@ import { BottomSheet } from './BottomSheet';
 import { Button, Card } from './';
 import { hapticFeedback } from '../utils/telegram';
 import { tracking } from '../services/tracking';
-import { useCreatePayment } from '../services/payments';
-import { getCohortPricing, getCohortOffer, validatePromoCode, applyDiscount, determineUserCohort } from '../utils/cohorts';
+import { useCreatePayment, usePaywallData } from '../services';
+import { getCohortPricing, getCohortOffer, validatePromoCode, determineUserCohort } from '../utils/cohorts';
+import { formatPriceWithCurrency, kopecksToRubles } from '../utils/price';
 import type { UserCohort, PromoCode } from '../types';
 
 interface PaywallBottomSheetProps {
@@ -32,11 +33,13 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   
   const createPaymentMutation = useCreatePayment();
+  const { data: paywallData } = usePaywallData();
 
   // Determine user cohort
   const cohort = propCohort || (userData ? determineUserCohort(userData) : 'default');
-  const pricing = getCohortPricing(cohort);
+  const pricing = paywallData?.pricing || getCohortPricing(cohort);
   const specialOffer = getCohortOffer(cohort);
+  const products = paywallData?.products || [];
 
   // Auto-apply cohort promo code if available
   useEffect(() => {
@@ -61,31 +64,34 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
     }
   };
 
-  const getDiscountedPrice = (originalPrice: number, planType: string): number => {
-    if (appliedPromo && appliedPromo.applicablePlans.includes(planType)) {
-      return applyDiscount(originalPrice, appliedPromo);
-    }
-    return originalPrice;
-  };
 
-  const handleSubscribe = async (planType: string, originalPrice: number) => {
+  const handleSubscribe = async (productId: string) => {
     try {
       setIsProcessing(true);
-      const finalPrice = getDiscountedPrice(originalPrice, planType);
+      
+      // Find product by ID
+      const product = products.find(p => p.id === productId);
+      if (!product) {
+        throw new Error('Product not found');
+      }
+
+      // Convert kopecks to rubles for tracking
+      const priceInRubles = kopecksToRubles(product.price);
+      const originalPriceInRubles = product.originalPrice ? kopecksToRubles(product.originalPrice) : priceInRubles;
       
       hapticFeedback.impact('heavy');
       tracking.custom('subscription_selected', { 
-        plan: planType,
-        originalPrice,
-        finalPrice,
+        plan: productId,
+        originalPrice: originalPriceInRubles,
+        finalPrice: priceInRubles,
         promoCode: appliedPromo?.code,
         cohort,
         source: 'bottom_sheet'
       });
 
-      // Map plan type to API product type
-      const productType = planType === 'monthly' ? 'monthly' : 
-                         planType === 'quarterly' ? 'quarterly' : 'yearly';
+      // Map product duration to API product type
+      const productType = product.duration === 'month' ? 'monthly' : 
+                         product.duration === 'quarter' ? 'quarterly' : 'yearly';
 
       // Get return URL from environment or use current URL
       const returnUrl = import.meta.env.VITE_PAYMENT_RETURN_URL || window.location.origin;
@@ -97,7 +103,7 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
       });
 
       // Track successful payment creation
-      tracking.paymentCreated(planType, paymentData.paymentId);
+      tracking.paymentCreated(productId, paymentData.paymentId);
 
       // Open payment URL in new tab/window
       window.open(paymentData.paymentUrl, '_blank');
@@ -107,7 +113,7 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
       alert('Ошибка при создании платежа. Попробуйте еще раз.');
       
       // Track payment error
-      tracking.paymentError(planType, error instanceof Error ? error.message : 'Unknown error');
+      tracking.paymentError(productId, error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsProcessing(false);
     }
@@ -234,154 +240,181 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
 
         {/* Pricing plans */}
         <div className="space-y-4 sm:space-y-3 mb-6">
-          {/* Annual plan - Default selected with super attractive effects */}
-          <Card className="relative border-2 border-telegram-accent bg-gradient-to-r from-telegram-accent/15 to-blue-500/15 shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse-slow animate-glow-pulse hover:scale-[1.02]">
-            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-              <span className="bg-gradient-to-r from-telegram-accent via-purple-500 to-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md animate-triple-gradient">
-                💎 ЛУЧШИЙ ВЫБОР
-              </span>
-            </div>
+          {products.map((product, index) => {
+            const isYearly = product.duration === 'year';
+            const isQuarterly = product.duration === 'quarter';
+            const isMonthly = product.duration === 'month';
+            const isFirst = index === 0;
             
-            {/* Floating particles around the card */}
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-400 rounded-full animate-floating-particles animation-delay-100 opacity-60"></div>
-            <div className="absolute top-1/2 -left-1 w-2 h-2 bg-blue-400 rounded-full animate-floating-particles animation-delay-300 opacity-50"></div>
-            <div className="absolute -bottom-1 left-1/4 w-2.5 h-2.5 bg-yellow-400 rounded-full animate-floating-particles animation-delay-500 opacity-70"></div>
-            
-            <div className="pt-3">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h4 className="text-lg font-bold text-telegram-text">Годовая подписка</h4>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded">
-                      ЭКОНОМИЯ 58%
-                    </span>
-                    <span className="text-telegram-hint text-sm">≈240₽/мес</span>
+            if (isMonthly && !isFirst) {
+              // Monthly plan in collapsible section
+              return (
+                <details key={product.id} className="group">
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex items-center justify-center py-2 text-telegram-hint text-sm hover:text-telegram-text transition-colors">
+                      <span>Ещё планы</span>
+                      <svg className="w-4 h-4 ml-1 transform group-open:rotate-180 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                    </div>
+                  </summary>
+                  
+                  <div className="mt-2">
+                    <Card className="border border-telegram-secondary-bg/30">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h4 className="text-base font-bold text-telegram-text">{product.name}</h4>
+                          <p className="text-telegram-hint text-sm">Для тестирования</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xl font-bold text-telegram-text">
+                            {formatPriceWithCurrency(product.price)}
+                          </div>
+                          {product.originalPrice && (
+                            <div className="text-telegram-hint text-sm line-through">
+                              {formatPriceWithCurrency(product.originalPrice)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <Button
+                        fullWidth
+                        variant="ghost"
+                        onClick={() => handleSubscribe(product.id)}
+                        disabled={isProcessing || createPaymentMutation.isPending}
+                        className="border border-telegram-secondary-bg text-telegram-text hover:bg-telegram-secondary-bg/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isProcessing || createPaymentMutation.isPending ? '⏳ Создание платежа...' : 'Выбрать план'}
+                      </Button>
+                    </Card>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-telegram-text">₽{getDiscountedPrice(pricing.yearlyPrice, 'yearly').toLocaleString()}</div>
-                  <div className="text-telegram-hint text-sm line-through">₽{pricing.yearlyOriginalPrice.toLocaleString()}</div>
-                </div>
-              </div>
-              
-              <div className="relative">
-                {/* Subtle glow - no blur */}
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-telegram-accent to-blue-500 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300" />
+                </details>
+              );
+            }
+            
+            return (
+              <Card 
+                key={product.id}
+                className={`relative ${
+                  isYearly 
+                    ? 'border-2 border-telegram-accent bg-gradient-to-r from-telegram-accent/15 to-blue-500/15 shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse-slow animate-glow-pulse hover:scale-[1.02]' 
+                    : isQuarterly
+                    ? 'border-2 border-green-500/60 bg-gradient-to-r from-green-50/30 to-emerald-50/30 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.01]'
+                    : 'border border-telegram-secondary-bg/30'
+                }`}
+              >
+                {isYearly && (
+                  <>
+                    <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-gradient-to-r from-telegram-accent via-purple-500 to-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md animate-triple-gradient">
+                        💎 ЛУЧШИЙ ВЫБОР
+                      </span>
+                    </div>
+                    
+                    {/* Floating particles around the card */}
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-400 rounded-full animate-floating-particles animation-delay-100 opacity-60"></div>
+                    <div className="absolute top-1/2 -left-1 w-2 h-2 bg-blue-400 rounded-full animate-floating-particles animation-delay-300 opacity-50"></div>
+                    <div className="absolute -bottom-1 left-1/4 w-2.5 h-2.5 bg-yellow-400 rounded-full animate-floating-particles animation-delay-500 opacity-70"></div>
+                  </>
+                )}
                 
-                {/* Super attractive main button */}
-                <button
-                  onClick={() => {
-                    hapticFeedback.impact('heavy');
-                    handleSubscribe('yearly', pricing.yearlyPrice);
-                  }}
-                  onMouseEnter={() => hapticFeedback.selection()}
-                  disabled={isProcessing || createPaymentMutation.isPending}
-                  className="relative w-full flex items-center justify-center gap-3 px-5 py-3 bg-gradient-to-r from-telegram-accent via-purple-500 to-blue-500 hover:from-telegram-accent/90 hover:via-purple-500/90 hover:to-blue-500/90 text-white font-bold text-base rounded-lg shadow-2xl hover:shadow-glow transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 animate-triple-gradient overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  {/* Clean shimmer effect */}
-                  <div className="absolute inset-0 rounded-xl overflow-hidden opacity-0 hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -skew-x-12 animate-shimmer" />
+                {isQuarterly && (
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-10">
+                    <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold px-2 sm:px-3 py-1 rounded-full shadow-md whitespace-nowrap">
+                      🎯 ОПТИМАЛЬНО ДЛЯ СТАРТА
+                    </span>
+                  </div>
+                )}
+                
+                <div className={isYearly || isQuarterly ? 'pt-3' : ''}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className={`font-bold text-telegram-text ${isYearly ? 'text-lg' : 'text-base'}`}>
+                        {product.name}
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        {product.discount && (
+                          <span className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                            ЭКОНОМИЯ {product.discount}%
+                          </span>
+                        )}
+                        {product.monthlyEquivalent && (
+                          <span className="text-telegram-hint text-sm">
+                            ≈{formatPriceWithCurrency(product.monthlyEquivalent)}/мес
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-bold text-telegram-text ${isYearly ? 'text-2xl' : 'text-xl'}`}>
+                        {formatPriceWithCurrency(product.price)}
+                      </div>
+                      {product.originalPrice && (
+                        <div className="text-telegram-hint text-sm line-through">
+                          {formatPriceWithCurrency(product.originalPrice)}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
-                  {/* Content */}
-                  <div className="relative flex flex-col items-center justify-center z-10">
-                    {/* Main attractive text */}
-                    <span className="text-white font-bold text-lg tracking-wide drop-shadow-lg leading-none mb-1">
-                      {isProcessing || createPaymentMutation.isPending ? '⏳ Создание платежа...' : '💎 Получить доступ'}
-                    </span>
+                  <div className="relative">
+                    {/* Subtle glow - no blur */}
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-telegram-accent to-blue-500 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300" />
                     
-                    {/* Savings and monthly cost */}
-                    {!(isProcessing || createPaymentMutation.isPending) && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-yellow-300 font-bold text-sm drop-shadow-sm leading-none">
-                          всего 240₽/мес
+                    {/* Super attractive main button */}
+                    <button
+                      onClick={() => {
+                        hapticFeedback.impact('heavy');
+                        handleSubscribe(product.id);
+                      }}
+                      onMouseEnter={() => hapticFeedback.selection()}
+                      disabled={isProcessing || createPaymentMutation.isPending}
+                      className={`relative w-full flex items-center justify-center gap-3 px-5 py-3 ${
+                        isYearly 
+                          ? 'bg-gradient-to-r from-telegram-accent via-purple-500 to-blue-500 hover:from-telegram-accent/90 hover:via-purple-500/90 hover:to-blue-500/90 text-white font-bold text-base rounded-lg shadow-2xl hover:shadow-glow transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 animate-triple-gradient overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
+                          : isQuarterly
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-base rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
+                          : 'border border-telegram-secondary-bg text-telegram-text hover:bg-telegram-secondary-bg/20 disabled:opacity-50 disabled:cursor-not-allowed'
+                      }`}
+                    >
+                      {/* Clean shimmer effect */}
+                      {isYearly && (
+                        <div className="absolute inset-0 rounded-xl overflow-hidden opacity-0 hover:opacity-100 transition-opacity duration-300">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -skew-x-12 animate-shimmer" />
+                        </div>
+                      )}
+                      
+                      {/* Content */}
+                      <div className="relative flex flex-col items-center justify-center z-10">
+                        {/* Main attractive text */}
+                        <span className={`font-bold text-lg tracking-wide drop-shadow-lg leading-none mb-1 ${
+                          isYearly ? 'text-white' : isQuarterly ? 'text-white' : 'text-telegram-text'
+                        }`}>
+                          {isProcessing || createPaymentMutation.isPending ? '⏳ Создание платежа...' : 
+                           isYearly ? '💎 Получить доступ' :
+                           isQuarterly ? '🚀 Начать 90-дневный план' :
+                           'Выбрать план'}
                         </span>
-                        <span className="text-green-300 font-bold text-sm drop-shadow-sm leading-none">
-                          экономия 73%
-                        </span>
+                        
+                        {/* Savings and monthly cost */}
+                        {!(isProcessing || createPaymentMutation.isPending) && isYearly && product.monthlyEquivalent && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-yellow-300 font-bold text-sm drop-shadow-sm leading-none">
+                              всего {formatPriceWithCurrency(product.monthlyEquivalent)}/мес
+                            </span>
+                            <span className="text-green-300 font-bold text-sm drop-shadow-sm leading-none">
+                              экономия {product.savingsPercentage || 0}%
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </button>
-              </div>
-            </div>
-          </Card>
-
-          {/* Quarterly plan - Simple and clean */}
-          <Card className="relative border-2 border-green-500/60 bg-gradient-to-r from-green-50/30 to-emerald-50/30 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.01]">
-            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-10">
-              <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold px-2 sm:px-3 py-1 rounded-full shadow-md whitespace-nowrap">
-                🎯 ОПТИМАЛЬНО ДЛЯ СТАРТА
-              </span>
-            </div>
-            
-            <div className="pt-3">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h4 className="text-base font-bold text-telegram-text">3 месяца</h4>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded">
-                      ЭКОНОМИЯ 16%
-                    </span>
-                    <span className="text-telegram-hint text-sm">≈497₽/мес</span>
+                    </button>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xl font-bold text-telegram-text">₽{getDiscountedPrice(pricing.quarterlyPrice, 'quarterly').toLocaleString()}</div>
-                  <div className="text-telegram-hint text-sm line-through">₽{pricing.quarterlyOriginalPrice.toLocaleString()}</div>
-                </div>
-              </div>
-              
-              <button
-                onClick={() => {
-                  hapticFeedback.impact('heavy');
-                  handleSubscribe('quarterly', pricing.quarterlyPrice);
-                }}
-                onMouseEnter={() => hapticFeedback.selection()}
-                disabled={isProcessing || createPaymentMutation.isPending}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-base rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 ease-out disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {isProcessing || createPaymentMutation.isPending ? '⏳ Создание платежа...' : '🚀 Начать 90-дневный план'}
-              </button>
-            </div>
-          </Card>
-
-          {/* Monthly plan - collapsed by default */}
-          <details className="group">
-            <summary className="cursor-pointer list-none">
-              <div className="flex items-center justify-center py-2 text-telegram-hint text-sm hover:text-telegram-text transition-colors">
-                <span>Ещё планы</span>
-                <svg className="w-4 h-4 ml-1 transform group-open:rotate-180 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 9l6 6 6-6"/>
-                </svg>
-              </div>
-            </summary>
-            
-            <div className="mt-2">
-              <Card className="border border-telegram-secondary-bg/30">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h4 className="text-base font-bold text-telegram-text">Месячная подписка</h4>
-                    <p className="text-telegram-hint text-sm">Для тестирования</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xl font-bold text-telegram-text">₽{getDiscountedPrice(pricing.monthlyPrice, 'monthly').toLocaleString()}</div>
-                    <div className="text-telegram-hint text-sm line-through">₽{pricing.monthlyOriginalPrice.toLocaleString()}</div>
-                  </div>
-                </div>
-                
-                <Button
-                  fullWidth
-                  variant="ghost"
-                  onClick={() => handleSubscribe('monthly', pricing.monthlyPrice)}
-                  disabled={isProcessing || createPaymentMutation.isPending}
-                  className="border border-telegram-secondary-bg text-telegram-text hover:bg-telegram-secondary-bg/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing || createPaymentMutation.isPending ? '⏳ Создание платежа...' : 'Выбрать план'}
-                </Button>
               </Card>
-            </div>
-          </details>
+            );
+          })}
         </div>
 
         {/* Trust indicators */}

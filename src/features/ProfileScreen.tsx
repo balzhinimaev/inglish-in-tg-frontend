@@ -12,7 +12,7 @@ export const ProfileScreen: React.FC = () => {
   const { user: storeUser, hasActiveSubscription } = useUserStore();
   const { navigateTo, setupBackButton } = useAppNavigation();
   
-  const { data: profile, isLoading: profileLoading } = useProfile(storeUser?.userId || null);
+  const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: entitlement, isLoading: entitlementLoading } = useEntitlements(storeUser?.userId || null);
 
   const isLoading = profileLoading || entitlementLoading;
