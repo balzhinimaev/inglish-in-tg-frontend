@@ -8,3 +8,4 @@ export * from './profile';
 export * from './tracking';
 export * from './progress';
 export * from './vocabularyStats';
+export * from './telegramStars';

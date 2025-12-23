@@ -23,8 +23,12 @@ export const rublesToKopecks = (rubles: number): number => {
 /**
  * Format price with currency symbol
  */
-export const formatPriceWithCurrency = (kopecks: number, _currency: string = 'RUB'): string => {
-  const rubles = kopecksToRubles(kopecks);
+export const formatPriceWithCurrency = (amount: number, currency: 'RUB' | 'STARS' = 'RUB'): string => {
+  if (currency === 'STARS') {
+    return `${amount.toLocaleString('ru-RU')} ⭐`;
+  }
+  
+  const rubles = kopecksToRubles(amount);
   return `${rubles.toLocaleString('ru-RU')}₽`;
 };
 
@@ -53,4 +57,35 @@ export const calculateSavingsPercentage = (monthlyPrice: number, planPrice: numb
   const monthlyEquivalent = calculateMonthlyEquivalent(planPrice, duration);
   const savings = monthlyPrice - monthlyEquivalent;
   return Math.round((savings / monthlyPrice) * 100);
+};
+
+/**
+ * Convert rubles to Telegram Stars
+ * Approximate rate: 1 star ≈ 1.5-2 rubles (this should be configurable)
+ */
+export const rublesToStars = (rubles: number, rate: number = 1.7): number => {
+  return Math.round(rubles / rate);
+};
+
+/**
+ * Convert Telegram Stars to rubles
+ */
+export const starsToRubles = (stars: number, rate: number = 1.7): number => {
+  return Math.round(stars * rate);
+};
+
+/**
+ * Convert kopecks to Telegram Stars
+ */
+export const kopecksToStars = (kopecks: number, rate: number = 1.7): number => {
+  const rubles = kopecksToRubles(kopecks);
+  return rublesToStars(rubles, rate);
+};
+
+/**
+ * Convert Telegram Stars to kopecks
+ */
+export const starsToKopecks = (stars: number, rate: number = 1.7): number => {
+  const rubles = starsToRubles(stars, rate);
+  return rublesToKopecks(rubles);
 };

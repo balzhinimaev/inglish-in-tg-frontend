@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '../utils/constants';
 export interface CreatePaymentRequest {
   product: 'monthly' | 'quarterly' | 'yearly';
   returnUrl: string;
+  currency?: 'RUB' | 'STARS'; // Optional currency parameter
 }
 
 export interface CreatePaymentResponse {

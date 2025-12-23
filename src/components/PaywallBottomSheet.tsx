@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BottomSheet } from './BottomSheet';
-import { Button, Card } from './';
+import { Button, Card, CurrencySwitch } from './';
 import { hapticFeedback } from '../utils/telegram';
 import { tracking } from '../services/tracking';
-import { useCreatePayment, usePaywallData } from '../services';
+import { useCreatePayment, usePaywallData, useCreateStarsPayment } from '../services';
 import { getCohortPricing, getCohortOffer, validatePromoCode, determineUserCohort } from '../utils/cohorts';
-import { formatPriceWithCurrency, kopecksToRubles } from '../utils/price';
-import type { UserCohort, PromoCode } from '../types';
+import { formatPriceWithCurrency, kopecksToRubles, kopecksToStars } from '../utils/price';
+import { usePricing } from '../hooks/usePricing';
+import type { UserCohort, PromoCode, PaymentCurrency } from '../types';
 
 interface PaywallBottomSheetProps {
   isOpen: boolean;
@@ -31,8 +32,10 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [showPromoInput, setShowPromoInput] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState<PaymentCurrency>('RUB');
   
   const createPaymentMutation = useCreatePayment();
+  const createStarsPaymentMutation = useCreateStarsPayment();
   const { data: paywallData } = usePaywallData();
 
   // Determine user cohort
@@ -40,6 +43,12 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
   const pricing = paywallData?.pricing || getCohortPricing(cohort);
   const specialOffer = getCohortOffer(cohort);
   const products = paywallData?.products || [];
+  
+  // Use pricing hook for currency calculations
+  const { productsWithCalculatedPrices, getDisplayPrice, getDisplayOriginalPrice, getDisplayMonthlyEquivalent } = usePricing({
+    products,
+    selectedCurrency
+  });
 
   // Auto-apply cohort promo code if available
   useEffect(() => {
@@ -86,6 +95,16 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
         finalPrice: priceInRubles,
         promoCode: appliedPromo?.code,
         cohort,
+        source: 'bottom_sheet',
+        currency: selectedCurrency
+      });
+      
+      // Track currency selection
+      tracking.custom('payment_currency_selected', {
+        productId,
+        currency: selectedCurrency,
+        priceInRubles,
+        priceInStars: selectedCurrency === 'STARS' ? (product.priceInStars || kopecksToStars(product.price)) : null,
         source: 'bottom_sheet'
       });
 
@@ -93,20 +112,39 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
       const productType = product.duration === 'month' ? 'monthly' : 
                          product.duration === 'quarter' ? 'quarterly' : 'yearly';
 
-      // Get return URL from environment or use current URL
-      const returnUrl = import.meta.env.VITE_PAYMENT_RETURN_URL || window.location.origin;
+      if (selectedCurrency === 'STARS') {
+        // Handle Telegram Stars payment
+        const priceInStars = product.priceInStars || kopecksToStars(product.price);
+        
+        const starsPaymentData = await createStarsPaymentMutation.mutateAsync({
+          product: productType,
+          priceInStars: priceInStars,
+          description: `Подписка ${product.name} - ${product.description}`
+        });
 
-      // Create payment
-      const paymentData = await createPaymentMutation.mutateAsync({
-        product: productType,
-        returnUrl: returnUrl,
-      });
+        if (!starsPaymentData.success) {
+          throw new Error(starsPaymentData.error || 'Failed to create Telegram Stars payment');
+        }
 
-      // Track successful payment creation
-      tracking.paymentCreated(productId, paymentData.paymentId);
+        // Track successful payment creation
+        tracking.paymentCreated(productId, 'telegram-stars-payment');
+        
+      } else {
+        // Handle regular YooKassa payment
+        const returnUrl = import.meta.env.VITE_PAYMENT_RETURN_URL || window.location.origin;
 
-      // Open payment URL in new tab/window
-      window.open(paymentData.paymentUrl, '_blank');
+        const paymentData = await createPaymentMutation.mutateAsync({
+          product: productType,
+          returnUrl: returnUrl,
+          currency: selectedCurrency,
+        });
+
+        // Track successful payment creation
+        tracking.paymentCreated(productId, paymentData.paymentId);
+
+        // Open payment URL in new tab/window
+        window.open(paymentData.paymentUrl, '_blank');
+      }
       
     } catch (error) {
       console.error('Payment creation failed:', error);
@@ -128,6 +166,14 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
         {/* Hero section */}
         <div className="text-center mb-5 pt-2">
           <div className="text-4xl mb-3">🎯</div>
+          
+          {/* Currency switch */}
+          <div className="flex justify-center mb-4">
+            <CurrencySwitch
+              selectedCurrency={selectedCurrency}
+              onCurrencyChange={setSelectedCurrency}
+            />
+          </div>
           
           {/* Special offer badge */}
           {specialOffer && (
@@ -240,7 +286,7 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
 
         {/* Pricing plans */}
         <div className="space-y-4 sm:space-y-3 mb-6">
-          {products.map((product, index) => {
+          {productsWithCalculatedPrices.map((product, index) => {
             const isYearly = product.duration === 'year';
             const isQuarterly = product.duration === 'quarter';
             const isMonthly = product.duration === 'month';
@@ -268,11 +314,11 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
                         </div>
                         <div className="text-right">
                           <div className="text-xl font-bold text-telegram-text">
-                            {formatPriceWithCurrency(product.price)}
+                            {formatPriceWithCurrency(getDisplayPrice(product), selectedCurrency)}
                           </div>
-                          {product.originalPrice && (
+                          {getDisplayOriginalPrice(product) && (
                             <div className="text-telegram-hint text-sm line-through">
-                              {formatPriceWithCurrency(product.originalPrice)}
+                              {formatPriceWithCurrency(getDisplayOriginalPrice(product)!, selectedCurrency)}
                             </div>
                           )}
                         </div>
@@ -339,20 +385,20 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
                             ЭКОНОМИЯ {product.discount}%
                           </span>
                         )}
-                        {product.monthlyEquivalent && (
+                        {getDisplayMonthlyEquivalent(product) && (
                           <span className="text-telegram-hint text-sm">
-                            ≈{formatPriceWithCurrency(product.monthlyEquivalent)}/мес
+                            ≈{formatPriceWithCurrency(getDisplayMonthlyEquivalent(product)!, selectedCurrency)}/мес
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className={`font-bold text-telegram-text ${isYearly ? 'text-2xl' : 'text-xl'}`}>
-                        {formatPriceWithCurrency(product.price)}
+                        {formatPriceWithCurrency(getDisplayPrice(product), selectedCurrency)}
                       </div>
-                      {product.originalPrice && (
+                      {getDisplayOriginalPrice(product) && (
                         <div className="text-telegram-hint text-sm line-through">
-                          {formatPriceWithCurrency(product.originalPrice)}
+                          {formatPriceWithCurrency(getDisplayOriginalPrice(product)!, selectedCurrency)}
                         </div>
                       )}
                     </div>
@@ -391,17 +437,17 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
                         <span className={`font-bold text-lg tracking-wide drop-shadow-lg leading-none mb-1 ${
                           isYearly ? 'text-white' : isQuarterly ? 'text-white' : 'text-telegram-text'
                         }`}>
-                          {isProcessing || createPaymentMutation.isPending ? '⏳ Создание платежа...' : 
-                           isYearly ? '💎 Получить доступ' :
-                           isQuarterly ? '🚀 Начать 90-дневный план' :
-                           'Выбрать план'}
+                          {isProcessing || createPaymentMutation.isPending || createStarsPaymentMutation.isPending ? '⏳ Создание платежа...' : 
+                           isYearly ? (selectedCurrency === 'STARS' ? '💎 Оплатить звездами' : '💎 Получить доступ') :
+                           isQuarterly ? (selectedCurrency === 'STARS' ? '🚀 Оплатить звездами' : '🚀 Начать 90-дневный план') :
+                           (selectedCurrency === 'STARS' ? 'Оплатить звездами' : 'Выбрать план')}
                         </span>
                         
                         {/* Savings and monthly cost */}
-                        {!(isProcessing || createPaymentMutation.isPending) && isYearly && product.monthlyEquivalent && (
+                        {!(isProcessing || createPaymentMutation.isPending || createStarsPaymentMutation.isPending) && isYearly && getDisplayMonthlyEquivalent(product) && (
                           <div className="flex items-center gap-2">
                             <span className="text-yellow-300 font-bold text-sm drop-shadow-sm leading-none">
-                              всего {formatPriceWithCurrency(product.monthlyEquivalent)}/мес
+                              всего {formatPriceWithCurrency(getDisplayMonthlyEquivalent(product)!, selectedCurrency)}/мес
                             </span>
                             <span className="text-green-300 font-bold text-sm drop-shadow-sm leading-none">
                               экономия {product.savingsPercentage || 0}%
@@ -437,6 +483,18 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
           <p className="text-telegram-hint text-xs">
             Оплачиваете один раз и пользуетесь весь период подписки.
           </p>
+          
+          {/* Currency-specific payment info */}
+          {selectedCurrency === 'STARS' && (
+            <div className="mt-3 p-3 bg-yellow-500/10 rounded-xl border border-yellow-500/20">
+              <div className="text-yellow-600 font-medium text-sm mb-1">
+                ⭐ Оплата звездами Telegram
+              </div>
+              <div className="text-telegram-text text-xs">
+                Оплата происходит через встроенную систему Telegram Stars
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Close button */}

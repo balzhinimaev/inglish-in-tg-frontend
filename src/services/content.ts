@@ -1176,6 +1176,7 @@ function getMockPaywallData() {
       quarterlyDiscountPercentage: 20,
       yearlyDiscountPercentage: 17,
       promoCode: 'DEFAULT10'
+      // Telegram Stars prices will be calculated automatically if not provided
     },
     products: [
       {
@@ -1187,7 +1188,8 @@ function getMockPaywallData() {
         currency: 'RUB',
         duration: 'month' as const,
         discount: 10,
-        isPopular: true
+        isPopular: true,
+        // Telegram Stars prices will be calculated automatically if not provided
       },
       {
         id: 'quarterly',
@@ -1199,7 +1201,8 @@ function getMockPaywallData() {
         duration: 'quarter' as const,
         discount: 20,
         monthlyEquivalent: 39967, // ~400₽ in kopecks
-        savingsPercentage: 56
+        savingsPercentage: 56,
+        // Telegram Stars prices will be calculated automatically if not provided
       },
       {
         id: 'yearly',
@@ -1211,7 +1214,8 @@ function getMockPaywallData() {
         duration: 'year' as const,
         discount: 17,
         monthlyEquivalent: 20742, // ~207₽ in kopecks
-        savingsPercentage: 77
+        savingsPercentage: 77,
+        // Telegram Stars prices will be calculated automatically if not provided
       }
     ],
     userStats: {

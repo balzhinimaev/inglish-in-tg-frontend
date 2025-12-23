@@ -19,3 +19,4 @@ export { ProgressChart, LearningStatsChart } from './ProgressChart';
 export { VocabularyChart } from './VocabularyChart';
 export { ModuleVocabulary } from './ModuleVocabulary';
 export { TabSwitch } from './TabSwitch';
+export { CurrencySwitch } from './CurrencySwitch';

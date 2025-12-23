@@ -75,6 +75,10 @@ export interface PaywallProduct {
   isPopular?: boolean;
   monthlyEquivalent?: number; // Monthly equivalent price in kopecks
   savingsPercentage?: number; // Savings percentage compared to monthly
+  // Telegram Stars support
+  priceInStars?: number; // Price in Telegram Stars
+  originalPriceInStars?: number; // Original price in Telegram Stars
+  monthlyEquivalentInStars?: number; // Monthly equivalent price in Telegram Stars
 }
 
 // Promo code and cohort system
@@ -102,6 +106,13 @@ export interface CohortPricing {
   yearlyOriginalPrice: number;
   promoCode?: string;
   discountPercentage?: number;
+  // Telegram Stars support
+  monthlyPriceInStars?: number;
+  monthlyOriginalPriceInStars?: number;
+  quarterlyPriceInStars?: number;
+  quarterlyOriginalPriceInStars?: number;
+  yearlyPriceInStars?: number;
+  yearlyOriginalPriceInStars?: number;
 }
 
 export interface UserCohortData {
@@ -115,6 +126,9 @@ export interface UserCohortData {
     badge?: string;
   };
 }
+
+// Payment currency types
+export type PaymentCurrency = 'RUB' | 'STARS';
 
 // App State types
 export type AppState = 'loading' | 'desktop_bridge' | 'onboarding' | 'modules' | 'lessons_list' | 'lesson' | 'vocabulary_test' | 'paywall' | 'profile' | 'error';
