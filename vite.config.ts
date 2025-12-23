@@ -4,13 +4,13 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
   // Serve under /webapp in production (for nginx prefix), use / in dev
-  base: "/webapp/",
+  base: "/",
   server: {
-    port: 3000,
+    port: 8004,
     host: "0.0.0.0",
-    allowedHosts: ["burlive.ru", "localhost", "127.0.0.1"],
+    allowedHosts: ["englishintg.ru", "localhost", "127.0.0.1"],
     hmr: {
-      host: "burlive.ru",
+      host: "englishintg.ru",
       clientPort: 443,
       protocol: "wss",
       path: "/webapp/__hmr", // HMR WS за тем же префиксом
