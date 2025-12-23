@@ -8,8 +8,8 @@ interface DesktopBridgeScreenProps {
 }
 
 export const DesktopBridgeScreen: React.FC<DesktopBridgeScreenProps> = ({
-  botUsername = import.meta.env.VITE_BOT_USERNAME || 'EnglishINtg_bot',
-  webAppUrl = import.meta.env.VITE_TELEGRAM_WEB_APP_URL || 'https://t.me/EnglishINtg_bot/webapp'
+  botUsername = import.meta.env.VITE_BOT_USERNAME || 'English_in_tg_bot',
+  webAppUrl = import.meta.env.VITE_TELEGRAM_WEB_APP_URL || 'https://t.me/English_in_tg_bot/myapp'
 }) => {
   const qrRef = useRef<HTMLCanvasElement>(null);
 
