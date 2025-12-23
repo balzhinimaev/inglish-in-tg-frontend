@@ -18,8 +18,8 @@ ARG VITE_ENABLE_ANALYTICS=true
 ARG VITE_ENABLE_DEBUG_LOGGING=false
 ARG NODE_ENV=production
 ARG APP_PORT=8004
-ARG VITE_BOT_USERNAME=EnglishINtg_bot
-ARG VITE_TELEGRAM_WEB_APP_URL=https://t.me/EnglishINtg_bot/webapp
+ARG VITE_BOT_USERNAME=English_in_tg_bot
+ARG VITE_TELEGRAM_WEB_APP_URL=https://t.me/English_in_tg_bot/webapp
 
 # Set environment variables for build
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
