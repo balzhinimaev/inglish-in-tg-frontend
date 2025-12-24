@@ -50,6 +50,24 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
     selectedCurrency
   });
 
+  // Track paywall view when opened
+  useEffect(() => {
+    if (isOpen && products.length > 0) {
+      tracking.paywallViewed(products);
+      tracking.custom('paywall_opened', {
+        source: 'bottom_sheet',
+        cohort,
+        productsCount: products.length,
+        hasPromoCode: !!pricing.promoCode,
+        userData: userData ? {
+          isFirstOpen: userData.isFirstOpen,
+          hasSubscription: userData.hasSubscription,
+          subscriptionExpired: userData.subscriptionExpired
+        } : undefined
+      });
+    }
+  }, [isOpen, products, cohort, pricing.promoCode, userData]);
+
   // Auto-apply cohort promo code if available
   useEffect(() => {
     if (pricing.promoCode && !appliedPromo) {

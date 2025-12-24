@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+                            import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Screen, Card, Button, Loader } from '../components';
 import { PaywallBottomSheet } from '../components/PaywallBottomSheet';
@@ -23,6 +23,7 @@ export const ModulesScreen: React.FC = () => {
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const modulesPerPage = 6; // Количество модулей на странице
   const screenRef = useRef<HTMLDivElement>(null);
+  const trackedModulesRef = useRef<Set<string>>(new Set()); // Отслеживаем уже отправленные модули
 
   const { data, isLoading, error } = useModules({ lang: SUPPORTED_LANGUAGES.RU });
   const allModules = Array.isArray(data?.modules) ? data.modules : [];
@@ -37,11 +38,13 @@ export const ModulesScreen: React.FC = () => {
   // }, {} as Record<string, ModuleItem[]>);
 
   
-  // Вычисляем модули для текущей страницы
+  // Вычисляем модули для текущей страницы с мемоизацией
   const totalPages = Math.ceil((Array.isArray(allModules) ? allModules.length : 0) / modulesPerPage);
   const startIndex = (currentPage - 1) * modulesPerPage;
   const endIndex = startIndex + modulesPerPage;
-  const modules = Array.isArray(allModules) ? allModules.slice(startIndex, endIndex) : [];
+  const modules = useMemo(() => {
+    return Array.isArray(allModules) ? allModules.slice(startIndex, endIndex) : [];
+  }, [allModules, startIndex, endIndex]);
 
   useEffect(() => {
     // Hide back button on modules screen
@@ -163,13 +166,25 @@ export const ModulesScreen: React.FC = () => {
     };
   }, [hasActiveSubscription]);
 
-  // Track impressions
+  // Track impressions - отправляем события только один раз для каждого модуля
   useEffect(() => {
-    if (modules.length > 0) {
+    if (modules.length === 0) return;
+
+    // Дебаунсинг для отправки событий
+    const timeoutId = setTimeout(() => {
       modules.forEach((m) => {
-        tracking.moduleView(m.moduleRef, m.requiresPro, m.isAvailable);
+        const moduleKey = `${m.moduleRef}-${m.requiresPro}-${m.isAvailable}`;
+        // Отправляем событие только если этот модуль еще не был отслежен
+        if (!trackedModulesRef.current.has(moduleKey)) {
+          trackedModulesRef.current.add(moduleKey);
+          tracking.moduleView(m.moduleRef, m.requiresPro, m.isAvailable);
+        }
       });
-    }
+    }, 500); // Задержка 500ms для дебаунсинга
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [modules]);
 
   const handleModuleClick = (module: ModuleItem) => {
