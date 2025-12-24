@@ -28,12 +28,16 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     if (isAnimating) return;
     
     setIsAnimating(true);
+    setIsDragging(false); // Сбрасываем dragging сразу
     hapticFeedback.impact('light');
+    
+    // Сразу разблокируем body scroll
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
     
     setTimeout(() => {
       setIsVisible(false);
       setDragOffset(0);
-      setIsDragging(false);
       setIsAnimating(false);
       onClose();
     }, 300);
@@ -101,9 +105,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   }, [handleDragStart]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    e.preventDefault();
-    handleDragMove(e.touches[0].clientY);
-  }, [handleDragMove]);
+    // Предотвращаем скролл только если действительно перетаскиваем
+    if (isDragging && !isAnimating) {
+      e.preventDefault();
+      handleDragMove(e.touches[0].clientY);
+    }
+  }, [handleDragMove, isDragging, isAnimating]);
 
   const handleTouchEnd = useCallback(() => {
     handleDragEnd();
@@ -148,19 +155,22 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
   // Prevent body scroll when sheet is open
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && !isAnimating) {
+      // Блокируем только когда полностью открыт и не анимируется
       document.body.style.overflow = 'hidden';
       document.body.style.touchAction = 'none';
     } else {
+      // Разблокируем при закрытии или анимации
       document.body.style.overflow = '';
       document.body.style.touchAction = '';
     }
     
     return () => {
+      // Гарантируем разблокировку при размонтировании
       document.body.style.overflow = '';
       document.body.style.touchAction = '';
     };
-  }, [isVisible]);
+  }, [isVisible, isAnimating]);
 
   // Don't render if not visible
   if (!isVisible) return null;
