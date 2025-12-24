@@ -94,7 +94,6 @@ export const PaywallScreen: React.FC = () => {
         const paymentData = await createPaymentMutation.mutateAsync({
           product: productType,
           returnUrl: returnUrl,
-          currency: selectedCurrency,
         });
 
         // Track successful payment creation

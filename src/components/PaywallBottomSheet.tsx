@@ -136,7 +136,6 @@ export const PaywallBottomSheet: React.FC<PaywallBottomSheetProps> = ({
         const paymentData = await createPaymentMutation.mutateAsync({
           product: productType,
           returnUrl: returnUrl,
-          currency: selectedCurrency,
         });
 
         // Track successful payment creation
