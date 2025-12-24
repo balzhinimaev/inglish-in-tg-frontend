@@ -143,6 +143,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   // Handle open/close animations
   useEffect(() => {
     if (isOpen && !isVisible) {
+      // Opening animation
       setIsVisible(true);
       setIsAnimating(true);
       
@@ -150,8 +151,21 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       setTimeout(() => {
         setIsAnimating(false);
       }, 400);
+    } else if (!isOpen && isVisible && !isAnimating) {
+      // Closing when isOpen becomes false externally (e.g. "Может быть позже" button)
+      setIsAnimating(true);
+      
+      // Immediately unlock body scroll
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+      
+      setTimeout(() => {
+        setIsVisible(false);
+        setDragOffset(0);
+        setIsAnimating(false);
+      }, 300);
     }
-  }, [isOpen, isVisible]);
+  }, [isOpen, isVisible, isAnimating]);
 
   // Prevent body scroll when sheet is open
   useEffect(() => {
