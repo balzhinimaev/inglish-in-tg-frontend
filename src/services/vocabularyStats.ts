@@ -5,6 +5,8 @@ import { VocabularyStatsResponse } from '../types';
 
 /**
  * Get vocabulary statistics for the current user
+ * Returns comprehensive statistics including summary, by difficulty, by category, 
+ * by part of speech, recent activity, streak, and weekly progress
  */
 export const useVocabularyStats = () => {
   return useQuery({
@@ -15,6 +17,14 @@ export const useVocabularyStats = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 3,
+    // Ensure empty arrays/objects are returned as []/{} not null
+    select: (data) => ({
+      ...data,
+      recentActivity: data.recentActivity || [],
+      weeklyProgress: data.weeklyProgress || [],
+      byCategory: data.byCategory || {},
+      byPartOfSpeech: data.byPartOfSpeech || {},
+    }),
   });
 };
 
