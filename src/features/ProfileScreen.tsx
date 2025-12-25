@@ -3,20 +3,47 @@ import { Screen, Loader, ProgressChart, LearningStatsChart, VocabularyChart } fr
 import { useUserStore } from '../store/user';
 import { useProfile } from '../services/profile';
 import { useEntitlements } from '../services/entitlements';
+import { useVocabularyStats } from '../services/vocabularyStats';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { APP_STATES } from '../utils/constants';
 import { getTelegramUser, hapticFeedback } from '../utils/telegram';
 import { tracking } from '../services/tracking';
 
 export const ProfileScreen: React.FC = () => {
-  const { user: storeUser, hasActiveSubscription } = useUserStore();
+  const { user: storeUser, entitlement: storeEntitlement, hasActiveSubscription, setEntitlement } = useUserStore();
   const { navigateTo, setupBackButton } = useAppNavigation();
   
   const { data: profile, isLoading: profileLoading } = useProfile();
-  const { data: entitlement, isLoading: entitlementLoading } = useEntitlements(storeUser?.userId || null);
+  // Используем данные из store как initialData, чтобы избежать запроса при монтировании
+  // React Query будет использовать данные из store и обновит их в фоне, если они устарели
+  const { data: entitlement, isLoading: entitlementLoading } = useEntitlements(
+    storeUser?.userId || null,
+    { 
+      enabled: !!storeUser?.userId,
+      initialData: storeEntitlement || undefined, // Используем данные из store как начальные
+      staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
+      // Если данные есть в store, запрос не будет выполнен сразу, только для обновления в фоне
+    }
+  );
+  const { data: vocabularyStats, isLoading: vocabularyStatsLoading } = useVocabularyStats();
 
-  const isLoading = profileLoading || entitlementLoading;
+  // Синхронизируем данные из React Query обратно в store при обновлении
+  useEffect(() => {
+    if (entitlement && entitlement !== storeEntitlement) {
+      setEntitlement(entitlement);
+    }
+  }, [entitlement, storeEntitlement, setEntitlement]);
+
+  const isLoading = profileLoading || entitlementLoading || vocabularyStatsLoading;
   const telegramUser = getTelegramUser();
+  
+  // Реальные данные из API
+  const realXP = profile?.xpTotal || 0;
+  const realStreak = vocabularyStats?.streak?.current || 0;
+  // TODO: Получить реальное количество завершенных уроков из API модулей
+  // Пока используем моковые данные для количества уроков
+  const completedLessons = 5; // Mock - нужно заменить на реальные данные из модулей
+  const totalLessons = 23; // Mock - нужно заменить на реальные данные из модулей
   
   // Animation states
   const [animatedLessons, setAnimatedLessons] = useState(0);
@@ -30,9 +57,9 @@ export const ProfileScreen: React.FC = () => {
 
   // Animate statistics counters
   useEffect(() => {
-    const targetLessons = 5; // Mock data - можно заменить на реальные данные
-    const targetXP = 125;
-    const targetStreak = 3;
+    const targetLessons = completedLessons;
+    const targetXP = realXP;
+    const targetStreak = realStreak;
 
     const animateCounter = (
       target: number,
@@ -159,7 +186,7 @@ export const ProfileScreen: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-bold text-blue-800">
-              {Math.round((animatedLessons / 23) * 100)}%
+              {totalLessons > 0 ? Math.round((animatedLessons / totalLessons) * 100) : 0}%
             </div>
           </div>
 
@@ -175,7 +202,7 @@ export const ProfileScreen: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-bold text-purple-800">
-              {animatedLessons}/23
+              {animatedLessons}/{totalLessons}
             </div>
           </div>
 
@@ -191,6 +218,7 @@ export const ProfileScreen: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-bold text-pink-800">
+              {/* TODO: Получить реальное время из API */}
               {Math.round(animatedLessons * 0.5)}/12
             </div>
           </div>
@@ -201,7 +229,7 @@ export const ProfileScreen: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-telegram-text">Прогресс обучения</h2>
             <span className="text-sm text-telegram-hint">
-              {Math.round((animatedLessons / 23) * 100)}% завершено
+              {totalLessons > 0 ? Math.round((animatedLessons / totalLessons) * 100) : 0}% завершено
             </span>
           </div>
           
@@ -209,7 +237,7 @@ export const ProfileScreen: React.FC = () => {
           <div className="w-full h-2 bg-gray-200 rounded-full mb-6 overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-1000 ease-out"
-              style={{ width: `${(animatedLessons / 23) * 100}%` }}
+              style={{ width: `${totalLessons > 0 ? (animatedLessons / totalLessons) * 100 : 0}%` }}
             />
           </div>
 
