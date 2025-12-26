@@ -359,7 +359,8 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
             <button
               onClick={() => navigateTo(APP_STATES.LESSONS_LIST, {
                 moduleRef: lesson?.moduleRef,
-                moduleTitle: 'Модуль'
+                moduleTitle: 'Модуль',
+                level: navigationParams?.level
               })}
               className="flex items-center gap-1 px-3 py-2 text-sm text-telegram-hint hover:text-telegram-text transition-colors rounded-lg hover:bg-telegram-secondary-bg"
             >
