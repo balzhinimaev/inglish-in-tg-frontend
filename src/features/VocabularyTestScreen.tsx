@@ -574,7 +574,7 @@ export const VocabularyTestScreen: React.FC<VocabularyTestScreenProps> = ({
         <Breadcrumbs
           moduleTitle={moduleTitle}
           onModulesClick={handleNavigateToModules}
-          lessonTitle="Тест словаря"
+          lessonTitle="Словарь"
           onLessonsClick={handleBackToLessons}
         />
 
@@ -582,12 +582,13 @@ export const VocabularyTestScreen: React.FC<VocabularyTestScreenProps> = ({
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-telegram-accent/10 text-telegram-accent rounded-full text-xs font-medium mb-3">
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              <path d="M9 12l2 2 4-4"/>
+              <circle cx="12" cy="12" r="10"/>
             </svg>
-            Тестирование
+            Тест словаря
           </div>
           <h1 className="text-xl font-bold text-telegram-text">
-            Проверка знаний
+            {moduleTitle}
           </h1>
         </div>
 

@@ -17,9 +17,11 @@ type VocabularySortBy = 'alphabetical' | 'difficulty' | 'learned_status';
 
 export const ModuleVocabulary: React.FC<ModuleVocabularyProps> = ({
   moduleRef,
+  moduleTitle,
   preloadedAudio
 }) => {
-  const { navigateTo } = useAppNavigation();
+  const { navigateTo, navigationParams } = useAppNavigation();
+  const level = navigationParams?.level as string | undefined;
   const [selectedFilter, setSelectedFilter] = useState<VocabularyFilter>('all');
   const [sortBy, setSortBy] = useState<VocabularySortBy>('alphabetical');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -218,7 +220,7 @@ export const ModuleVocabulary: React.FC<ModuleVocabularyProps> = ({
             <button
               onClick={() => {
                 hapticFeedback.selection();
-                navigateTo(APP_STATES.VOCABULARY_TEST, { moduleRef });
+                navigateTo(APP_STATES.VOCABULARY_TEST, { moduleRef, moduleTitle, level });
               }}
               className="w-full bg-gradient-to-r from-telegram-accent to-blue-600 hover:from-telegram-accent/90 hover:to-blue-600/90 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
             >
