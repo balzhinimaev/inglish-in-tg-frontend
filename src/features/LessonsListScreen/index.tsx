@@ -8,104 +8,24 @@ import { APP_STATES } from '../../utils/constants';
 import { tracking } from '../../services/tracking';
 import { hapticFeedback } from '../../utils/telegram';
 import { useAudioPreload } from '../../utils/audio';
-import type { LessonItem, LessonType, LessonDifficulty, TaskType, TaskTypeInfo } from '../../types';
+import type { LessonItem, LessonType, LessonDifficulty, TaskType } from '../../types';
+import {
+  LESSONS_PER_PAGE,
+  LESSON_DIFFICULTY_COLORS,
+  LESSON_DIFFICULTY_LABELS,
+  LESSON_TYPE_ICONS,
+  LESSON_TYPE_LABELS,
+  TAG_CONFIG,
+  TASK_TYPES_CONFIG,
+  type EnhancedTag
+} from './constants';
 import './styles.lessonsList.css';
-
-// Enhanced tag system types
-type TagCategory = 'context' | 'skill' | 'function' | 'media' | 'level' | 'general';
-
-interface EnhancedTag {
-  id: string;
-  label: string;
-  icon: string;
-  category: TagCategory;
-  color: string;
-  bgColor: string;
-  priority: number; // Higher number = higher priority for display
-}
 
 interface LessonsListScreenProps {
   moduleRef?: string;
   moduleTitle?: string;
   level?: string;
 }
-
-// Task types configuration
-const TASK_TYPES_CONFIG: Record<TaskType, TaskTypeInfo> = {
-  flashcard: {
-    type: 'flashcard',
-    label: 'Карточки',
-    icon: '📚',
-    color: 'rgba(139, 69, 19, 0.8)',
-    description: 'Изучение слов и фраз'
-  },
-  multiple_choice: {
-    type: 'multiple_choice',
-    label: 'Тест',
-    icon: '✓',
-    color: 'rgba(59, 130, 246, 0.8)',
-    description: 'Выбор правильного ответа'
-  },
-  matching: {
-    type: 'matching',
-    label: 'Соединить',
-    icon: '⚡',
-    color: 'rgba(168, 85, 247, 0.8)',
-    description: 'Соединение слов с переводом'
-  },
-  gap_fill: {
-    type: 'gap_fill',
-    label: 'Вставить',
-    icon: '✎',
-    color: 'rgba(34, 197, 94, 0.8)',
-    description: 'Заполнение пропусков'
-  },
-  listening: {
-    type: 'listening',
-    label: 'Слушать',
-    icon: '🔊',
-    color: 'rgba(245, 101, 101, 0.8)',
-    description: 'Аудирование'
-  }
-};
-
-// Professional tag configuration
-const TAG_CONFIG: Record<string, EnhancedTag> = {
-  // Context tags (places/situations)
-  'airport': { id: 'airport', label: 'Аэропорт', icon: '✈️', category: 'context', color: 'text-blue-700', bgColor: 'bg-blue-100', priority: 8 },
-  'hotel': { id: 'hotel', label: 'Отель', icon: '🏨', category: 'context', color: 'text-purple-700', bgColor: 'bg-purple-100', priority: 7 },
-  'restaurant': { id: 'restaurant', label: 'Ресторан', icon: '🍽️', category: 'context', color: 'text-orange-700', bgColor: 'bg-orange-100', priority: 7 },
-  'city': { id: 'city', label: 'Город', icon: '🏙️', category: 'context', color: 'text-gray-700', bgColor: 'bg-gray-100', priority: 6 },
-  'transport': { id: 'transport', label: 'Транспорт', icon: '🚌', category: 'context', color: 'text-green-700', bgColor: 'bg-green-100', priority: 6 },
-  
-  // Skill tags (what is being learned)
-  'greetings': { id: 'greetings', label: 'Приветствие', icon: '👋', category: 'skill', color: 'text-yellow-700', bgColor: 'bg-yellow-100', priority: 9 },
-  'basics': { id: 'basics', label: 'Основы', icon: '📚', category: 'skill', color: 'text-indigo-700', bgColor: 'bg-indigo-100', priority: 8 },
-  'pronunciation': { id: 'pronunciation', label: 'Произношение', icon: '🗣️', category: 'skill', color: 'text-pink-700', bgColor: 'bg-pink-100', priority: 7 },
-  'vocabulary': { id: 'vocabulary', label: 'Словарь', icon: '📖', category: 'skill', color: 'text-teal-700', bgColor: 'bg-teal-100', priority: 6 },
-  
-  // Function tags (purpose/goal)
-  'ordering': { id: 'ordering', label: 'Заказ', icon: '📝', category: 'function', color: 'text-red-700', bgColor: 'bg-red-100', priority: 7 },
-  'directions': { id: 'directions', label: 'Направления', icon: '🧭', category: 'function', color: 'text-blue-700', bgColor: 'bg-blue-100', priority: 7 },
-  'check-in': { id: 'check-in', label: 'Регистрация', icon: '🏨', category: 'function', color: 'text-purple-700', bgColor: 'bg-purple-100', priority: 6 },
-  'security': { id: 'security', label: 'Безопасность', icon: '🔒', category: 'function', color: 'text-gray-700', bgColor: 'bg-gray-100', priority: 8 },
-  'customs': { id: 'customs', label: 'Таможня', icon: '🛂', category: 'function', color: 'text-indigo-700', bgColor: 'bg-indigo-100', priority: 6 },
-  'passport': { id: 'passport', label: 'Паспорт', icon: '📘', category: 'function', color: 'text-blue-700', bgColor: 'bg-blue-100', priority: 7 },
-  
-  // Media tags (content format)
-  'audio': { id: 'audio', label: 'Аудио', icon: '🎵', category: 'media', color: 'text-green-600', bgColor: 'bg-green-50', priority: 5 },
-  'video': { id: 'video', label: 'Видео', icon: '🎬', category: 'media', color: 'text-red-600', bgColor: 'bg-red-50', priority: 5 },
-  'interactive': { id: 'interactive', label: 'Интерактив', icon: '🎮', category: 'media', color: 'text-purple-600', bgColor: 'bg-purple-50', priority: 4 },
-  
-  // Level tags (special markers)
-  'beginner': { id: 'beginner', label: 'Новичок', icon: '🌱', category: 'level', color: 'text-green-600', bgColor: 'bg-green-50', priority: 6 },
-  'popular': { id: 'popular', label: 'Популярный', icon: '🔥', category: 'level', color: 'text-orange-600', bgColor: 'bg-orange-50', priority: 9 },
-  'important': { id: 'important', label: 'Важный', icon: '⭐', category: 'level', color: 'text-yellow-600', bgColor: 'bg-yellow-50', priority: 10 },
-  'new': { id: 'new', label: 'Новый', icon: '✨', category: 'level', color: 'text-blue-600', bgColor: 'bg-blue-50', priority: 8 },
-  
-  // General tags (fallback)
-  'general': { id: 'general', label: 'Общее', icon: '🏷️', category: 'general', color: 'text-gray-600', bgColor: 'bg-gray-50', priority: 1 }
-};
 
 // Utility functions
 const getDefaultTaskTypes = (lessonType: LessonType): TaskType[] => {
@@ -157,26 +77,6 @@ const getAvailableLessonTypes = (lessons: LessonItem[]): Array<{key: LessonType 
     }
   });
   
-  const typeLabels: Record<LessonType, string> = {
-    conversation: 'Разговор',
-    vocabulary: 'Словарь', 
-    listening: 'Аудирование',
-    grammar: 'Грамматика',
-    speaking: 'Говорение',
-    reading: 'Чтение',
-    writing: 'Письмо'
-  };
-  
-  const typeIcons: Record<LessonType, string> = {
-    conversation: '💬',
-    vocabulary: '📚',
-    listening: '🎧', 
-    grammar: '📝',
-    speaking: '🎤',
-    reading: '📖',
-    writing: '✍️'
-  };
-  
   const options: Array<{key: LessonType | 'all', label: string, icon: string}> = [
     { key: 'all', label: 'Все', icon: '📚' }
   ];
@@ -188,8 +88,8 @@ const getAvailableLessonTypes = (lessons: LessonItem[]): Array<{key: LessonType 
     if (availableTypes.has(type)) {
       options.push({
         key: type,
-        label: typeLabels[type],
-        icon: typeIcons[type]
+        label: LESSON_TYPE_LABELS[type],
+        icon: LESSON_TYPE_ICONS[type]
       });
     }
   });
@@ -199,16 +99,7 @@ const getAvailableLessonTypes = (lessons: LessonItem[]): Array<{key: LessonType 
 
 const getLessonTypeIcon = (type?: LessonType) => {
   if (!type) return "📚";
-  const icons = {
-    vocabulary: "📚",
-    grammar: "📝", 
-    listening: "🎧",
-    speaking: "🎤",
-    reading: "📖",
-    writing: "✍️",
-    conversation: "💬"
-  };
-  return icons[type] || "📚";
+  return LESSON_TYPE_ICONS[type] || "📚";
 };
 
 // Enhanced tag processing functions
@@ -280,16 +171,7 @@ const getEnhancedTags = (lesson: LessonItem): EnhancedTag[] => {
 };
 
 const getLessonTypeLabel = (type: LessonType): string => {
-  const labels = {
-    vocabulary: 'Словарь',
-    grammar: 'Грамматика',
-    listening: 'Аудирование',
-    speaking: 'Говорение',
-    reading: 'Чтение',
-    writing: 'Письмо',
-    conversation: 'Разговор'
-  };
-  return labels[type] || 'Урок';
+  return LESSON_TYPE_LABELS[type] || 'Урок';
 };
 
 // Enhanced tag display component
@@ -378,7 +260,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const lessonsPerPage = 5; // Количество уроков на странице
+  const lessonsPerPage = LESSONS_PER_PAGE; // Количество уроков на странице
 
   const { data, isLoading } = useLessons({ 
     moduleRef, 
@@ -809,22 +691,12 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
 
   const getDifficultyColor = (difficulty?: LessonDifficulty) => {
     if (!difficulty) return "text-gray-600 bg-gray-50";
-    const colors = {
-      easy: "text-green-600 bg-green-50",
-      medium: "text-yellow-600 bg-yellow-50", 
-      hard: "text-red-600 bg-red-50"
-    };
-    return colors[difficulty] || "text-gray-600 bg-gray-50";
+    return LESSON_DIFFICULTY_COLORS[difficulty] || "text-gray-600 bg-gray-50";
   };
 
   const getDifficultyText = (difficulty?: LessonDifficulty) => {
     if (!difficulty) return "Неизвестно";
-    const texts = {
-      easy: "Легко",
-      medium: "Средне",
-      hard: "Сложно"
-    };
-    return texts[difficulty] || "Неизвестно";
+    return LESSON_DIFFICULTY_LABELS[difficulty] || "Неизвестно";
   };
 
   const getProgressIcon = (lesson: LessonItem) => {
