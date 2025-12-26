@@ -127,8 +127,8 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
     hapticFeedback.selection();
     tracking.lessonStarted(lesson.lessonRef);
     
-    // Navigate to lesson with lessonRef
-    navigateTo(APP_STATES.LESSON, { lessonRef: lesson.lessonRef });
+    // Navigate to lesson with lessonRef and level for proper back navigation
+    navigateTo(APP_STATES.LESSON, { lessonRef: lesson.lessonRef, level });
   };
 
   const handlePreviewToggle = (lessonRef: string) => {
