@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Screen, Card } from '../components';
 import { useUserStore } from '../store/user';
 import { useAppNavigation } from '../hooks/useAppNavigation';
-import { APP_STATES, MODULE_LEVELS, type ModuleLevel } from '../utils/constants';
+import { APP_STATES, type ModuleLevel } from '../utils/constants';
 import { tracking } from '../services/tracking';
 import { hapticFeedback, hideBackButton, getTelegramUser } from '../utils/telegram';
 
@@ -162,7 +162,7 @@ export const LevelsScreen: React.FC = () => {
 
         {/* Levels Grid */}
         <div className="space-y-3 max-[300px]:space-y-2">
-          {LEVELS_ORDER.map((level, index) => {
+          {LEVELS_ORDER.map((level) => {
             const levelData = LEVEL_DATA[level];
             
             return (
