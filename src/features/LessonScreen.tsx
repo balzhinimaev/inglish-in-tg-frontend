@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Screen, Card, Button, Loader, LessonProgress, TaskRenderer } from '../components';
+import { Breadcrumbs } from './LessonsListScreen/Breadcrumbs';
 import { useUserStore } from '../store/user';
 import { useDetailedLesson } from '../services/content';
 import { useEntitlements } from '../services/entitlements';
@@ -160,7 +161,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         alert(`Урок завершён! Ваш результат: ${score}% 🎉`);
         navigateTo(APP_STATES.LESSONS_LIST, {
           moduleRef: lesson.moduleRef,
-          moduleTitle: 'Модуль',
+          moduleTitle: navigationParams?.moduleTitle || 'Модуль',
           level: navigationParams?.level,
           _overridePreviousScreen: APP_STATES.MODULES,
           _overridePreviousScreenParams: { level: navigationParams?.level }
@@ -324,7 +325,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
               size="lg"
               onClick={() => navigateTo(APP_STATES.LESSONS_LIST, {
                 moduleRef: lesson?.moduleRef,
-                moduleTitle: 'Модуль',
+                moduleTitle: navigationParams?.moduleTitle || 'Модуль',
                 level: navigationParams?.level,
                 _overridePreviousScreen: APP_STATES.MODULES,
                 _overridePreviousScreenParams: { level: navigationParams?.level }
@@ -361,39 +362,41 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     );
   }
 
+  const handleNavigateToLessons = () => {
+    hapticFeedback.selection();
+    navigateTo(APP_STATES.LESSONS_LIST, {
+      moduleRef: lesson?.moduleRef,
+      moduleTitle: navigationParams?.moduleTitle || 'Модуль',
+      level: navigationParams?.level,
+      _overridePreviousScreen: APP_STATES.MODULES,
+      _overridePreviousScreenParams: { level: navigationParams?.level }
+    });
+  };
+
+  const handleNavigateToModules = () => {
+    hapticFeedback.selection();
+    navigateTo(APP_STATES.MODULES, { level: navigationParams?.level });
+  };
+
   return (
     <Screen>
       <div className="max-w-md mx-auto">
         {/* Header with Breadcrumb */}
         <div className="mb-6">
-          {/* Back to Lessons Button */}
-          <div className="flex items-center gap-2 mb-4">
-            <button
-              onClick={() => navigateTo(APP_STATES.LESSONS_LIST, {
-                moduleRef: lesson?.moduleRef,
-                moduleTitle: 'Модуль',
-                level: navigationParams?.level,
-                _overridePreviousScreen: APP_STATES.MODULES,
-                _overridePreviousScreenParams: { level: navigationParams?.level }
-              })}
-              className="flex items-center gap-1 px-3 py-2 text-sm text-telegram-hint hover:text-telegram-text transition-colors rounded-lg hover:bg-telegram-secondary-bg"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 18l-6-6 6-6"/>
-              </svg>
-              <span>Уроки</span>
-            </button>
-          </div>
+          {/* Breadcrumbs */}
+          <Breadcrumbs
+            moduleTitle={navigationParams?.moduleTitle || 'Модуль'}
+            onModulesClick={handleNavigateToModules}
+            lessonTitle={lesson?.title}
+            onLessonsClick={handleNavigateToLessons}
+          />
 
-          {/* Lesson Title */}
-          <div className="text-center mb-4">
-            <h1 className="text-2xl font-bold text-telegram-text mb-2">
-              {lesson?.title}
-            </h1>
-            <p className="text-telegram-hint">
-              {lesson?.description}
+          {/* Lesson Description */}
+          {lesson?.description && (
+            <p className="text-telegram-hint text-center text-sm mb-4">
+              {lesson.description}
             </p>
-          </div>
+          )}
 
           {/* Progress Bar */}
           <LessonProgress
