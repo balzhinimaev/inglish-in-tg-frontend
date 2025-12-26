@@ -8,7 +8,7 @@ import { useUserStore } from '../store/user';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { APP_STATES, type ModuleLevel } from '../utils/constants';
 import { tracking } from '../services/tracking';
-import { hapticFeedback, getTelegramUser } from '../utils/telegram';
+import { hapticFeedback, getTelegramUser, showBackButton } from '../utils/telegram';
 import type { ModuleItem, LessonsResponse } from '../types';
 import { API_ENDPOINTS, SUPPORTED_LANGUAGES } from '../utils/constants';
 
@@ -57,9 +57,17 @@ export const ModulesScreen: React.FC<ModulesScreenProps> = ({ level: propLevel }
   }, [allModules, startIndex, endIndex]);
 
   useEffect(() => {
-    // Setup back button to return to levels screen
-    setupBackButton();
-  }, [setupBackButton]);
+    // If we have a level, back button should always go to levels screen
+    if (level) {
+      showBackButton(() => {
+        hapticFeedback.impact('light');
+        navigateTo(APP_STATES.LEVELS);
+      });
+    } else {
+      // Otherwise use default back button behavior
+      setupBackButton();
+    }
+  }, [level, navigateTo, setupBackButton]);
 
   // Preload likely next screens' code-split chunks in background
   useEffect(() => {
