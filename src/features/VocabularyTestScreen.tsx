@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Screen, Button, Loader } from '../components';
+import { Breadcrumbs } from './LessonsListScreen/Breadcrumbs';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { useModuleVocabulary } from '../services/content';
 import { APP_STATES } from '../utils/constants';
@@ -39,7 +40,8 @@ export const VocabularyTestScreen: React.FC<VocabularyTestScreenProps> = ({
   moduleRef = '',
   moduleTitle = 'Модуль'
 }) => {
-  const { navigateTo, setupBackButton } = useAppNavigation();
+  const { navigateTo, setupBackButton, navigationParams } = useAppNavigation();
+  const level = navigationParams?.level as string | undefined;
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -199,7 +201,18 @@ export const VocabularyTestScreen: React.FC<VocabularyTestScreenProps> = ({
 
   const handleBackToLessons = () => {
     hapticFeedback.selection();
-    navigateTo(APP_STATES.LESSONS_LIST, { moduleRef, moduleTitle });
+    navigateTo(APP_STATES.LESSONS_LIST, { 
+      moduleRef, 
+      moduleTitle,
+      level,
+      _overridePreviousScreen: APP_STATES.MODULES,
+      _overridePreviousScreenParams: { level }
+    });
+  };
+
+  const handleNavigateToModules = () => {
+    hapticFeedback.selection();
+    navigateTo(APP_STATES.MODULES, { level });
   };
 
   const handleAudioPlay = (wordId: string) => {
@@ -319,6 +332,14 @@ export const VocabularyTestScreen: React.FC<VocabularyTestScreenProps> = ({
     return (
       <Screen>
         <div className="max-w-md mx-auto min-w-0">
+          {/* Breadcrumbs */}
+          <Breadcrumbs
+            moduleTitle={moduleTitle}
+            onModulesClick={handleNavigateToModules}
+            lessonTitle="Результаты"
+            onLessonsClick={handleBackToLessons}
+          />
+
           {/* Animated Header */}
           <div className="text-center mb-8">
             <div className="relative inline-block">
@@ -549,14 +570,25 @@ export const VocabularyTestScreen: React.FC<VocabularyTestScreenProps> = ({
   return (
     <Screen>
       <div className="max-w-md mx-auto min-w-0">
+        {/* Breadcrumbs */}
+        <Breadcrumbs
+          moduleTitle={moduleTitle}
+          onModulesClick={handleNavigateToModules}
+          lessonTitle="Тест словаря"
+          onLessonsClick={handleBackToLessons}
+        />
+
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-xl font-bold text-telegram-text mb-2">
-            Тестирование словаря
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-telegram-accent/10 text-telegram-accent rounded-full text-xs font-medium mb-3">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            Тестирование
+          </div>
+          <h1 className="text-xl font-bold text-telegram-text">
+            Проверка знаний
           </h1>
-          <p className="text-telegram-hint text-sm">
-            {moduleTitle}
-          </p>
         </div>
 
         {/* Progress */}
