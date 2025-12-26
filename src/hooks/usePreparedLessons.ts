@@ -101,9 +101,7 @@ const buildMockLessons = (moduleRef?: string): LessonItem[] => [
     hasAudio: true,
     hasVideo: true,
     previewText: 'Excuse me, could I have some water please?',
-    taskTypes: ['flashcard', 'gap_fill'] as TaskType[],
-    isLocked: true,
-    unlockCondition: 'Завершите урок "Посадка на самолет"'
+    taskTypes: ['flashcard', 'gap_fill'] as TaskType[]
   },
   {
     lessonRef: 'travel.a0.arrival',
@@ -119,9 +117,7 @@ const buildMockLessons = (moduleRef?: string): LessonItem[] => [
     hasAudio: true,
     hasVideo: true,
     previewText: 'Purpose of visit, duration of stay, customs declaration...',
-    taskTypes: ['matching', 'multiple_choice', 'listening'] as TaskType[],
-    isLocked: true,
-    unlockCondition: 'Завершите урок "Во время полета"'
+    taskTypes: ['matching', 'multiple_choice', 'listening'] as TaskType[]
   },
   {
     lessonRef: 'travel.a0.hotel',
@@ -136,9 +132,7 @@ const buildMockLessons = (moduleRef?: string): LessonItem[] => [
     xpReward: 35,
     hasAudio: true,
     hasVideo: false,
-    previewText: 'I have a reservation under the name...',
-    isLocked: true,
-    unlockCondition: 'Завершите урок "Прибытие и паспортный контроль"'
+    previewText: 'I have a reservation under the name...'
   },
   {
     lessonRef: 'travel.a0.restaurant',
@@ -154,8 +148,6 @@ const buildMockLessons = (moduleRef?: string): LessonItem[] => [
     hasAudio: true,
     hasVideo: true,
     previewText: "Could I see the menu, please? I'd like to order...",
-    isLocked: true,
-    unlockCondition: 'Завершите урок "Заселение в отель"'
   },
   {
     lessonRef: 'travel.a0.directions',
@@ -170,9 +162,7 @@ const buildMockLessons = (moduleRef?: string): LessonItem[] => [
     xpReward: 30,
     hasAudio: true,
     hasVideo: false,
-    previewText: 'Excuse me, how do I get to...? Go straight, turn left...',
-    isLocked: true,
-    unlockCondition: 'Завершите урок "В ресторане"'
+    previewText: 'Excuse me, how do I get to...? Go straight, turn left...'
   }
 ];
 
