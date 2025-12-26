@@ -42,6 +42,7 @@ const App: React.FC = () => {
         return <LessonsListScreen 
           moduleRef={navigationParams.moduleRef} 
           moduleTitle={navigationParams.moduleTitle}
+          level={navigationParams.level}
         />;
       
       case APP_STATES.LESSON:

@@ -214,10 +214,11 @@ export const ModulesScreen: React.FC<ModulesScreenProps> = ({ level: propLevel }
     );
 
     if (module.isAvailable) {
-      // Navigate to lessons list for this module
+      // Navigate to lessons list for this module, preserving the level
       navigateTo(APP_STATES.LESSONS_LIST, {
         moduleRef: module.moduleRef,
-        moduleTitle: module.title
+        moduleTitle: module.title,
+        level: level || module.level // Use current level or module's level
       });
     } else {
       setIsPaywallOpen(true);
