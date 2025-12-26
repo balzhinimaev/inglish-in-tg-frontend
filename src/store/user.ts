@@ -111,11 +111,24 @@ export const useUserStore = create<UserState>()(
       setAppState: (appState, params = {}) => {
         const currentState = get().appState;
         const currentParams = get().navigationParams;
+        
+        // Extract _overridePreviousScreen from params if provided
+        const { _overridePreviousScreen, _overridePreviousScreenParams, ...restParams } = params as Record<string, any>;
+        
+        let newPreviousScreen = currentState !== appState ? currentState : get().previousScreen;
+        let newPreviousScreenParams = currentState !== appState ? currentParams : get().previousScreenParams;
+        
+        // Allow overriding previousScreen for proper back navigation
+        if (_overridePreviousScreen) {
+          newPreviousScreen = _overridePreviousScreen;
+          newPreviousScreenParams = _overridePreviousScreenParams || {};
+        }
+        
         set({ 
           appState,
-          previousScreen: currentState !== appState ? currentState : get().previousScreen,
-          previousScreenParams: currentState !== appState ? currentParams : get().previousScreenParams,
-          navigationParams: params,
+          previousScreen: newPreviousScreen,
+          previousScreenParams: newPreviousScreenParams,
+          navigationParams: restParams,
         });
       },
       

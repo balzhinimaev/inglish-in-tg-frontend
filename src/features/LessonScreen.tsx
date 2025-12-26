@@ -160,7 +160,10 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         alert(`Урок завершён! Ваш результат: ${score}% 🎉`);
         navigateTo(APP_STATES.LESSONS_LIST, {
           moduleRef: lesson.moduleRef,
-          moduleTitle: 'Модуль'
+          moduleTitle: 'Модуль',
+          level: navigationParams?.level,
+          _overridePreviousScreen: APP_STATES.MODULES,
+          _overridePreviousScreenParams: { level: navigationParams?.level }
         });
       }, 1500);
     } else {
@@ -198,7 +201,10 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
               fullWidth
               onClick={() => navigateTo(APP_STATES.LESSONS_LIST, {
                 moduleRef: navigationParams?.moduleRef,
-                moduleTitle: navigationParams?.moduleTitle || 'Модуль'
+                moduleTitle: navigationParams?.moduleTitle || 'Модуль',
+                level: navigationParams?.level,
+                _overridePreviousScreen: APP_STATES.MODULES,
+                _overridePreviousScreenParams: { level: navigationParams?.level }
               })}
               className="bg-telegram-accent text-white"
             >
@@ -239,10 +245,13 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
                 if (moduleRef) {
                   navigateTo(APP_STATES.LESSONS_LIST, {
                     moduleRef,
-                    moduleTitle: navigationParams?.moduleTitle || 'Модуль'
+                    moduleTitle: navigationParams?.moduleTitle || 'Модуль',
+                    level: navigationParams?.level,
+                    _overridePreviousScreen: APP_STATES.MODULES,
+                    _overridePreviousScreenParams: { level: navigationParams?.level }
                   });
                 } else {
-                  navigateTo(APP_STATES.MODULES);
+                  navigateTo(APP_STATES.MODULES, { level: navigationParams?.level });
                 }
               }}
               className="bg-telegram-accent text-white"
@@ -315,7 +324,10 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
               size="lg"
               onClick={() => navigateTo(APP_STATES.LESSONS_LIST, {
                 moduleRef: lesson?.moduleRef,
-                moduleTitle: 'Модуль'
+                moduleTitle: 'Модуль',
+                level: navigationParams?.level,
+                _overridePreviousScreen: APP_STATES.MODULES,
+                _overridePreviousScreenParams: { level: navigationParams?.level }
               })}
               className="bg-telegram-accent hover:bg-telegram-accent/90 text-white"
             >
@@ -360,7 +372,9 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
               onClick={() => navigateTo(APP_STATES.LESSONS_LIST, {
                 moduleRef: lesson?.moduleRef,
                 moduleTitle: 'Модуль',
-                level: navigationParams?.level
+                level: navigationParams?.level,
+                _overridePreviousScreen: APP_STATES.MODULES,
+                _overridePreviousScreenParams: { level: navigationParams?.level }
               })}
               className="flex items-center gap-1 px-3 py-2 text-sm text-telegram-hint hover:text-telegram-text transition-colors rounded-lg hover:bg-telegram-secondary-bg"
             >
