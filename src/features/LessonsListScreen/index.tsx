@@ -3,18 +3,22 @@ import { Screen, Button, Loader, TabSwitch, ModuleVocabulary, LessonCard } from 
 import { BackToModulesButton } from './BackToModulesButton';
 import { PaywallBottomSheet } from '../../components/PaywallBottomSheet';
 import { useLessons, useModuleVocabulary } from '../../services/content';
-import { useAppNavigation } from '../../hooks/useAppNavigation';
+import {
+  useAnimatedModuleStats,
+  useAppNavigation,
+  useFilteredLessons,
+  usePreparedLessons,
+  useStickyBreadcrumbs,
+  useVocabularyAudioPreload
+} from '../../hooks';
 import { APP_STATES } from '../../utils/constants';
 import { tracking } from '../../services/tracking';
 import { hapticFeedback } from '../../utils/telegram';
-import { useAudioPreload } from '../../utils/audio';
-import type { LessonItem, LessonType, LessonDifficulty, TaskType } from '../../types';
+import type { LessonItem, LessonType } from '../../types';
 import {
   LESSONS_PER_PAGE
 } from './constants';
 import {
-  getDefaultTaskTypes,
-  mapApiTaskTypes,
   getAvailableLessonTypes,
   pluralize
 } from './utils';
@@ -40,11 +44,6 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
   const [showPreview, setShowPreview] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'order' | 'difficulty' | 'duration'>('order');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [animatedProgress, setAnimatedProgress] = useState(0);
-  const [animatedCompleted, setAnimatedCompleted] = useState(0);
-  const [animatedXP, setAnimatedXP] = useState(0);
-  const [showStickyBreadcrumbs, setShowStickyBreadcrumbs] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const lessonsPerPage = LESSONS_PER_PAGE; // Количество уроков на странице
@@ -54,393 +53,50 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
     lang: 'ru' 
   });
 
-  // Audio preloading hook
-  const { isPreloading, preloadAudioFiles, getPreloadedAudio } = useAudioPreload();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [preloadedAudioMap, setPreloadedAudioMap] = useState<Map<string, HTMLAudioElement>>(new Map());
-  const [loadedAudioUrls, setLoadedAudioUrls] = useState<Set<string>>(new Set());
-
   // Get vocabulary data for audio preloading
   const { data: vocabularyData } = useModuleVocabulary({ 
     moduleRef, 
     lang: 'ru' 
   });
-  
-  // Enhanced mock data with sequential progression logic
-  const mockLessons: LessonItem[] = useMemo(() => {
-    // Add default values to existing lessons from API
-    const apiLessons = (data?.lessons || []).map(lesson => ({
-      ...lesson,
-      type: lesson.type || 'vocabulary' as LessonType,
-      difficulty: lesson.difficulty || 'medium' as LessonDifficulty,
-      tags: lesson.tags || [],
-      xpReward: lesson.xpReward || 20,
-      hasAudio: lesson.hasAudio || false,
-      hasVideo: lesson.hasVideo || false,
-      taskTypes: lesson.taskTypes ? mapApiTaskTypes(lesson.taskTypes) : getDefaultTaskTypes(lesson.type || 'vocabulary')
-    }));
 
-    // Apply sequential progression logic to API lessons
-    const processedApiLessons = apiLessons.map((lesson, index) => {
-      if (index === 0) {
-        // First lesson is always available
-        return lesson;
-      }
-      
-      // Check if previous lesson is completed
-      const previousLesson = apiLessons[index - 1];
-      const isPreviousCompleted = previousLesson?.progress?.status === 'completed';
-      
-      return {
-        ...lesson,
-        isLocked: !isPreviousCompleted,
-        unlockCondition: !isPreviousCompleted ? `Завершите урок "${previousLesson?.title}"` : undefined
-      };
-    });
+  const preparedLessons = usePreparedLessons({ lessons: data?.lessons, moduleRef });
+  const { filteredLessons, totalPages, allFilteredLessons } = useFilteredLessons({
+    lessons: preparedLessons,
+    selectedFilter,
+    sortBy,
+    sortDirection,
+    currentPage,
+    lessonsPerPage
+  });
 
-    const allLessons = [
-      ...processedApiLessons,
-    // Add rich mock lessons ONLY if no real data is available
-    ...(!data?.lessons || data.lessons.length === 0 ? [
-      {
-        lessonRef: "travel.a0.greetings",
-        moduleRef: moduleRef || "travel.a0",
-        title: "Приветствие и знакомство",
-        description: "Изучите основные фразы для знакомства в аэропорту",
-        estimatedMinutes: 8,
-        order: 1,
-        type: "conversation" as LessonType,
-        difficulty: "easy" as LessonDifficulty,
-        tags: ["greetings", "basics", "airport", "beginner"],
-        xpReward: 25,
-        hasAudio: true,
-        hasVideo: false,
-        previewText: "Hello! My name is... Nice to meet you!",
-        taskTypes: ["flashcard", "multiple_choice", "listening"] as TaskType[],
-        progress: {
-          status: "completed" as const,
-          score: 95,
-          attempts: 2,
-          completedAt: "2024-01-15T10:30:00Z",
-          timeSpent: 480
-        }
-      },
-      {
-        lessonRef: "travel.a0.security",
-        moduleRef: moduleRef || "travel.a0",
-        title: "Досмотр безопасности",
-        description: "Пройдите контроль безопасности без проблем",
-        estimatedMinutes: 12,
-        order: 2,
-        type: "listening" as LessonType,
-        difficulty: "medium" as LessonDifficulty,
-        tags: ["security", "airport", "instructions", "important"],
-        xpReward: 35,
-        hasAudio: true,
-        hasVideo: true,
-        previewText: "Please put your belongings in the tray...",
-        taskTypes: ["listening", "gap_fill", "multiple_choice"] as TaskType[],
-        progress: {
-          status: "in_progress" as const,
-          score: 67,
-          attempts: 1,
-          timeSpent: 420
-        }
-      },
-      {
-        lessonRef: "travel.a0.boarding",
-        moduleRef: moduleRef || "travel.a0",
-        title: "Посадка на самолет",
-        description: "Найдите свое место и подготовьтесь к полету",
-        estimatedMinutes: 10,
-        order: 3,
-        type: "vocabulary" as LessonType,
-        difficulty: "easy" as LessonDifficulty,
-        tags: ["transport", "airport", "vocabulary"],
-        xpReward: 30,
-        hasAudio: true,
-        hasVideo: false,
-        previewText: "Boarding pass, seat number, overhead compartment...",
-        taskTypes: ["flashcard", "matching", "gap_fill", "multiple_choice", "listening"] as TaskType[],
-        progress: {
-          status: "not_started" as const,
-          score: 0,
-          attempts: 0
-        }
-      },
-      {
-        lessonRef: "travel.a0.flight",
-        moduleRef: moduleRef || "travel.a0",
-        title: "Во время полета",
-        description: "Общение с экипажем и пассажирами",
-        estimatedMinutes: 15,
-        order: 4,
-        type: "conversation" as LessonType,
-        difficulty: "medium" as LessonDifficulty,
-        tags: ["transport", "ordering", "popular"],
-        xpReward: 40,
-        hasAudio: true,
-        hasVideo: true,
-        previewText: "Excuse me, could I have some water please?",
-        taskTypes: ["flashcard", "gap_fill"] as TaskType[],
-        isLocked: true,
-        unlockCondition: "Завершите урок 'Посадка на самолет'"
-      },
-      {
-        lessonRef: "travel.a0.arrival",
-        moduleRef: moduleRef || "travel.a0",
-        title: "Прибытие и паспортный контроль",
-        description: "Пройдите паспортный контроль и получите багаж",
-        estimatedMinutes: 18,
-        order: 5,
-        type: "grammar" as LessonType,
-        difficulty: "hard" as LessonDifficulty,
-        tags: ["airport", "passport", "customs", "important"],
-        xpReward: 50,
-        hasAudio: true,
-        hasVideo: true,
-        previewText: "Purpose of visit, duration of stay, customs declaration...",
-        taskTypes: ["matching", "multiple_choice", "listening"] as TaskType[],
-        isLocked: true,
-        unlockCondition: "Завершите урок 'Во время полета'"
-      },
-      {
-        lessonRef: "travel.a0.hotel",
-        moduleRef: moduleRef || "travel.a0",
-        title: "Заселение в отель",
-        description: "Зарегистрируйтесь в отеле и узнайте о услугах",
-        estimatedMinutes: 14,
-        order: 6,
-        type: "speaking" as LessonType,
-        difficulty: "medium" as LessonDifficulty,
-        tags: ["hotel", "check-in", "popular"],
-        xpReward: 35,
-        hasAudio: true,
-        hasVideo: false,
-        previewText: "I have a reservation under the name...",
-        isLocked: true,
-        unlockCondition: "Завершите урок 'Прибытие и паспортный контроль'"
-      },
-      {
-        lessonRef: "travel.a0.restaurant",
-        moduleRef: moduleRef || "travel.a0",
-        title: "В ресторане",
-        description: "Закажите еду и пообщайтесь с официантом",
-        estimatedMinutes: 16,
-        order: 7,
-        type: "conversation" as LessonType,
-        difficulty: "medium" as LessonDifficulty,
-        tags: ["restaurant", "ordering", "popular"],
-        xpReward: 40,
-        hasAudio: true,
-        hasVideo: true,
-        previewText: "Could I see the menu, please? I'd like to order...",
-        isLocked: true,
-        unlockCondition: "Завершите урок 'Заселение в отель'"
-      },
-      {
-        lessonRef: "travel.a0.directions",
-        moduleRef: moduleRef || "travel.a0",
-        title: "Спросить дорогу",
-        description: "Научитесь спрашивать и понимать направления",
-        estimatedMinutes: 12,
-        order: 8,
-        type: "listening" as LessonType,
-        difficulty: "easy" as LessonDifficulty,
-        tags: ["city", "directions", "beginner"],
-        xpReward: 30,
-        hasAudio: true,
-        hasVideo: false,
-        previewText: "Excuse me, how do I get to...? Go straight, turn left...",
-        isLocked: true,
-        unlockCondition: "Завершите урок 'В ресторане'"
-      }
-    ] : [])
-    ];
-
-    // Apply sequential progression logic to all lessons
-    return allLessons
-      .sort((a: LessonItem, b: LessonItem) => a.order - b.order) // Ensure proper order
-      .map((lesson: LessonItem, index: number) => {
-        if (index === 0) {
-          // First lesson is always available
-          return { ...lesson, isLocked: false };
-        }
-        
-        // Check if previous lesson is completed
-        const previousLesson = allLessons.find((l: LessonItem) => l.order === lesson.order - 1);
-        const isPreviousCompleted = (previousLesson && 'progress' in previousLesson && previousLesson.progress?.status === 'completed') || false;
-        
-        return {
-          ...lesson,
-          isLocked: !isPreviousCompleted,
-          unlockCondition: !isPreviousCompleted 
-            ? `Завершите урок "${previousLesson?.title}"` 
-            : lesson.unlockCondition
-        };
-      });
-  }, [data?.lessons, moduleRef]);
-
-  // Filter and paginate lessons
-  const { filteredLessons, totalPages, allFilteredLessons } = useMemo(() => {
-    let filtered = selectedFilter === 'all' 
-      ? mockLessons 
-      : mockLessons.filter(lesson => lesson.type === selectedFilter);
-    
-    // Sort lessons
-    filtered = filtered.sort((a, b) => {
-      let result = 0;
-      
-      switch (sortBy) {
-        case 'difficulty':
-          const difficultyOrder: Record<string, number> = { easy: 1, medium: 2, hard: 3, undefined: 0 };
-          const aDiff = a.difficulty || 'undefined';
-          const bDiff = b.difficulty || 'undefined';
-          result = (difficultyOrder[aDiff] || 0) - (difficultyOrder[bDiff] || 0);
-          break;
-        case 'duration':
-          result = a.estimatedMinutes - b.estimatedMinutes;
-          break;
-        case 'order':
-        default:
-          result = a.order - b.order;
-          break;
-      }
-      
-      return sortDirection === 'desc' ? -result : result;
-    });
-    
-    // Calculate pagination
-    const totalPages = Math.ceil(filtered.length / lessonsPerPage);
-    const startIndex = (currentPage - 1) * lessonsPerPage;
-    const endIndex = startIndex + lessonsPerPage;
-    const paginatedLessons = filtered.slice(startIndex, endIndex);
-    
-    return {
-      filteredLessons: paginatedLessons,
-      totalPages,
-      allFilteredLessons: filtered
-    };
-  }, [mockLessons, selectedFilter, sortBy, sortDirection, currentPage, lessonsPerPage]);
+  const { showStickyBreadcrumbs } = useStickyBreadcrumbs(screenRef);
+  const { preloadedAudioMap } = useVocabularyAudioPreload({ activeTab, vocabularyData });
 
   // Calculate module statistics
   const moduleStats = useMemo(() => {
-    const completed = mockLessons.filter(l => l.progress?.status === 'completed').length;
-    const inProgress = mockLessons.filter(l => l.progress?.status === 'in_progress').length;
-    const totalXP = mockLessons
+    const completed = preparedLessons.filter(l => l.progress?.status === 'completed').length;
+    const inProgress = preparedLessons.filter(l => l.progress?.status === 'in_progress').length;
+    const totalXP = preparedLessons
       .filter(l => l.progress?.status === 'completed')
       .reduce((sum, l) => sum + (l.xpReward || 0), 0);
-    const avgScore = mockLessons
+    const avgScore = preparedLessons
       .filter(l => l.progress?.status === 'completed')
       .reduce((sum, l, _, arr) => sum + (l.progress?.score || 0) / arr.length, 0);
     
     return {
       completed,
       inProgress,
-      total: mockLessons.length,
+      total: preparedLessons.length,
       totalXP,
       avgScore: Math.round(avgScore)
     };
-  }, [mockLessons]);
+  }, [preparedLessons]);
+
+  const { animatedProgress, animatedCompleted, animatedXP } = useAnimatedModuleStats(moduleStats);
 
   useEffect(() => {
     setupBackButton();
   }, [setupBackButton]);
-
-  // Smart sticky breadcrumbs with scroll direction detection
-  useEffect(() => {
-    let ticking = false;
-    let hideTimeout: NodeJS.Timeout | undefined;
-
-    const handleScroll = (e: Event) => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          const target = e.target as HTMLElement;
-          const currentScrollY = target.scrollTop;
-          
-          // Determine scroll direction
-          const direction = currentScrollY > lastScrollY ? 'down' : 'up';
-          
-          // Show sticky when regular breadcrumbs are out of view
-          const threshold = 120;
-          
-          // Clear any existing timeout
-          if (hideTimeout) {
-            clearTimeout(hideTimeout);
-          }
-          
-          if (currentScrollY < threshold) {
-            // Near top - hide immediately
-            setShowStickyBreadcrumbs(false);
-          } else {
-            // Past threshold
-            if (direction === 'down') {
-              // Scrolling down - show
-              setShowStickyBreadcrumbs(true);
-            } else if (direction === 'up') {
-              // Scrolling up - hide
-              setShowStickyBreadcrumbs(false);
-            }
-          }
-          
-          setLastScrollY(currentScrollY);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    // Use ref to access Screen element directly
-    const screenElement = screenRef.current;
-    if (screenElement) {
-      screenElement.addEventListener('scroll', handleScroll, { passive: true });
-      
-      return () => {
-        screenElement.removeEventListener('scroll', handleScroll);
-        if (hideTimeout) {
-          clearTimeout(hideTimeout);
-        }
-      };
-    }
-  }, [lastScrollY]);
-
-  // Animate progress bar and counters
-  useEffect(() => {
-    const targetProgress = (moduleStats.completed / moduleStats.total) * 100;
-    const targetCompleted = moduleStats.completed;
-    const targetXP = moduleStats.totalXP;
-    const animationDuration = 1500; // 1.5 seconds
-    const steps = 60; // 60fps
-    
-    const progressIncrement = targetProgress / steps;
-    const completedIncrement = targetCompleted / steps;
-    const xpIncrement = targetXP / steps;
-    
-    let currentStep = 0;
-
-    const timer = setInterval(() => {
-      currentStep++;
-      const progressValue = Math.min(progressIncrement * currentStep, targetProgress);
-      const completedValue = Math.min(Math.round(completedIncrement * currentStep), targetCompleted);
-      const xpValue = Math.min(Math.round(xpIncrement * currentStep), targetXP);
-      
-      setAnimatedProgress(progressValue);
-      setAnimatedCompleted(completedValue);
-      setAnimatedXP(xpValue);
-
-      if (currentStep >= steps) {
-        clearInterval(timer);
-        setAnimatedProgress(targetProgress);
-        setAnimatedCompleted(targetCompleted);
-        setAnimatedXP(targetXP);
-        
-        // Add haptic feedback when animation completes
-        hapticFeedback.selection();
-      }
-    }, animationDuration / steps);
-
-    return () => clearInterval(timer);
-  }, [moduleStats.completed, moduleStats.total, moduleStats.totalXP]);
 
   // Track module lessons view
   useEffect(() => {
@@ -478,7 +134,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
 
   // Get dynamic filter options based on available lesson types
   const filterOptions = useMemo(() => {
-    const options = getAvailableLessonTypes(mockLessons);
+    const options = getAvailableLessonTypes(preparedLessons);
     
     // Debug logging
     if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
@@ -486,7 +142,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
     }
     
     return options;
-  }, [mockLessons]);
+  }, [preparedLessons]);
 
   // Reset filter if selected type is no longer available
   useEffect(() => {
@@ -496,38 +152,6 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
     }
   }, [filterOptions, selectedFilter]);
 
-  // Preload audio when switching to vocabulary tab (silent background loading)
-  useEffect(() => {
-    if (activeTab === 'vocabulary' && vocabularyData?.vocabulary && !isPreloading) {
-      const audioUrls = vocabularyData.vocabulary
-        .map(item => item.pronunciation)
-        .filter(Boolean) as string[];
-      
-      // Check if we need to load any new audio files
-      const newAudioUrls = audioUrls.filter(url => !loadedAudioUrls.has(url));
-      
-      if (newAudioUrls.length > 0) {
-        console.log('Silently preloading audio for vocabulary tab:', newAudioUrls.length, 'files');
-        setLoadedAudioUrls(prev => new Set([...prev, ...newAudioUrls]));
-        
-        // Start preloading immediately
-        preloadAudioFiles(newAudioUrls).then(() => {
-          // Update the preloaded audio map after preloading is complete
-          setPreloadedAudioMap(prevMap => {
-            const newMap = new Map(prevMap);
-            newAudioUrls.forEach(url => {
-              const audio = getPreloadedAudio(url);
-              if (audio) {
-                newMap.set(url, audio);
-              }
-            });
-            return newMap;
-          });
-        });
-      }
-    }
-  }, [activeTab, vocabularyData, preloadAudioFiles, getPreloadedAudio, isPreloading, loadedAudioUrls]);
-
   if (isLoading) {
     return (
       <Screen className="flex items-center justify-center">
@@ -536,7 +160,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
     );
   }
 
-  if (mockLessons.length === 0) {
+  if (preparedLessons.length === 0) {
     return (
       <Screen className="flex items-center justify-center">
         <div className="text-center">
@@ -860,7 +484,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
                 key: 'lessons', 
                 label: 'Уроки', 
                 icon: '📚',
-                count: mockLessons.length
+                count: preparedLessons.length
               },
               { 
                 key: 'vocabulary', 
@@ -989,7 +613,7 @@ export const LessonsListScreen: React.FC<LessonsListScreenProps> = ({
         {/* Filter Results Info */}
         {selectedFilter !== 'all' && (
           <div className="mt-4 text-center text-sm text-telegram-hint">
-            Показано {allFilteredLessons.length} из {mockLessons.length} уроков
+            Показано {allFilteredLessons.length} из {preparedLessons.length} уроков
           </div>
         )}
 
