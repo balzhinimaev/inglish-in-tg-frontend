@@ -131,7 +131,7 @@ export interface UserCohortData {
 export type PaymentCurrency = 'RUB' | 'STARS';
 
 // App State types
-export type AppState = 'loading' | 'desktop_bridge' | 'onboarding' | 'modules' | 'lessons_list' | 'lesson' | 'vocabulary_test' | 'paywall' | 'profile' | 'error';
+export type AppState = 'loading' | 'desktop_bridge' | 'onboarding' | 'levels' | 'modules' | 'lessons_list' | 'lesson' | 'vocabulary_test' | 'paywall' | 'profile' | 'error';
 
 // API Response types
 export interface AuthVerifyResponse {
@@ -219,8 +219,19 @@ export interface ModuleItem {
   isAvailable: boolean;
 }
 
+// Pagination types
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 export interface ModulesResponse {
   modules: ModuleItem[];
+  pagination?: PaginationInfo;
 }
 
 // Lessons API types from /content/lessons

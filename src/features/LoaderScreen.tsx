@@ -80,9 +80,9 @@ export const LoaderScreen: React.FC = () => {
         console.log('Navigating to onboarding');
         navigateTo(APP_STATES.ONBOARDING);
       } else {
-        console.log('Navigating to modules');
-        // После онбординга открываем список модулей
-        navigateTo(APP_STATES.MODULES);
+        console.log('Navigating to levels');
+        // После онбординга открываем экран выбора уровней
+        navigateTo(APP_STATES.LEVELS);
       }
     }
   }, [authData, error, isAuthenticated, user, login, setError, navigateTo, isDesktop, isLoading]);

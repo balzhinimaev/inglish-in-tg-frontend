@@ -1,6 +1,7 @@
 export { LoaderScreen } from './LoaderScreen';
 export { DesktopBridgeScreen } from './DesktopBridgeScreen';
 export { OnboardingScreen } from './OnboardingScreen';
+export { LevelsScreen } from './LevelsScreen';
 export { LessonScreen } from './LessonScreen';
 export { LessonsListScreen } from './LessonsListScreen';
 export { VocabularyTestScreen } from './VocabularyTestScreen';

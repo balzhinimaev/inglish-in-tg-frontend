@@ -142,8 +142,8 @@ export const OnboardingScreen: React.FC = () => {
       // Track completion
       tracking.onboardingCompleted(selectedLevel);
 
-      // Navigate to modules
-      navigateTo(APP_STATES.MODULES);
+      // Navigate to levels selection
+      navigateTo(APP_STATES.LEVELS);
     } catch (error) {
       console.error('Failed to complete onboarding:', error);
       // Could show error message to user here

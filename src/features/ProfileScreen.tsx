@@ -342,7 +342,7 @@ export const ProfileScreen: React.FC = () => {
             onClick={() => {
               hapticFeedback.impact('heavy');
               tracking.custom('profile_continue_learning_clicked');
-              navigateTo(APP_STATES.MODULES);
+              navigateTo(APP_STATES.LEVELS);
             }}
             className="relative w-full flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-telegram-accent via-blue-500 to-purple-500 hover:from-telegram-accent/90 hover:via-blue-500/90 hover:to-purple-500/90 text-white font-bold text-lg rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out border border-white/20 backdrop-blur-sm"
           >

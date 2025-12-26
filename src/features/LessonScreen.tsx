@@ -253,7 +253,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
             <Button 
               variant="ghost"
               fullWidth
-              onClick={() => navigateTo(APP_STATES.MODULES)}
+              onClick={() => navigateTo(APP_STATES.LEVELS)}
             >
               Главная страница
             </Button>

@@ -49,6 +49,7 @@ export const APP_STATES = {
   LOADING: 'loading',
   DESKTOP_BRIDGE: 'desktop_bridge', // For desktop users - show QR code
   ONBOARDING: 'onboarding',
+  LEVELS: 'levels', // Levels selection screen (A0-C2)
   MODULES: 'modules',
   LESSONS_LIST: 'lessons_list',
   LESSON: 'lesson',

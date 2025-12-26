@@ -42,7 +42,8 @@ export const useAppNavigation = () => {
     
     // Specific navigation functions
     goToOnboarding: () => navigateTo(APP_STATES.ONBOARDING),
-    goToModules: () => navigateTo(APP_STATES.MODULES),
+    goToLevels: () => navigateTo(APP_STATES.LEVELS),
+    goToModules: (level?: string) => navigateTo(APP_STATES.MODULES, level ? { level } : {}),
     goToLessonsList: (moduleRef: string, moduleTitle?: string) => 
       navigateTo(APP_STATES.LESSONS_LIST, { moduleRef, moduleTitle }),
     goToLesson: (lessonRef?: string) => navigateTo(APP_STATES.LESSON, { lessonRef }),

@@ -402,11 +402,11 @@ export const PaywallScreen: React.FC = () => {
           )}
         </div>
 
-        {/* Back to lesson */}
+        {/* Back to levels */}
         <Button
           variant="ghost"
           fullWidth
-          onClick={() => navigateTo(APP_STATES.MODULES)}
+          onClick={() => navigateTo(APP_STATES.LEVELS)}
           className="mt-4 text-telegram-hint"
         >
           Может быть позже

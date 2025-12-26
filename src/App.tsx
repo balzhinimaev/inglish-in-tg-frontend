@@ -6,6 +6,7 @@ import { useYandexMetrika } from './hooks/useYandexMetrika';
 const LoaderScreen = lazy(() => import('./features/LoaderScreen').then(m => ({ default: m.LoaderScreen })));
 const DesktopBridgeScreen = lazy(() => import('./features/DesktopBridgeScreen').then(m => ({ default: m.DesktopBridgeScreen })));
 const OnboardingScreen = lazy(() => import('./features/OnboardingScreen').then(m => ({ default: m.OnboardingScreen })));
+const LevelsScreen = lazy(() => import('./features/LevelsScreen').then(m => ({ default: m.LevelsScreen })));
 const ModulesScreen = lazy(() => import('./features/ModulesScreen').then(m => ({ default: m.ModulesScreen })));
 const LessonsListScreen = lazy(() => import('./features/LessonsListScreen').then(m => ({ default: m.LessonsListScreen })));
 const LessonScreen = lazy(() => import('./features/LessonScreen').then(m => ({ default: m.LessonScreen })));
@@ -30,6 +31,9 @@ const App: React.FC = () => {
       
       case APP_STATES.ONBOARDING:
         return <OnboardingScreen />;
+      
+      case APP_STATES.LEVELS:
+        return <LevelsScreen />;
       
       case APP_STATES.MODULES:
         return <ModulesScreen />;

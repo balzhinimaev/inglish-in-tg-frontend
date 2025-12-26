@@ -96,22 +96,66 @@ export const usePaywallProducts = () => {
 
 /**
  * Get modules list with optional user progress and availability
+ * Now supports level filter and pagination
  */
-export const useModules = (params?: { level?: ModuleLevel; lang?: SupportedLanguage }) => {
+export const useModules = (params?: { level?: ModuleLevel; lang?: SupportedLanguage; page?: number; limit?: number }) => {
   return useQuery({
-    queryKey: ['modules', params?.level, params?.lang],
+    queryKey: ['modules', params?.level, params?.lang, params?.page, params?.limit],
     queryFn: async (): Promise<ModulesResponse> => {
       const query = new URLSearchParams();
       if (params?.level) query.set('level', params.level);
       if (params?.lang) query.set('lang', params.lang);
+      if (params?.page) query.set('page', params.page.toString());
+      if (params?.limit) query.set('limit', params.limit.toString());
 
       const url = `${API_ENDPOINTS.CONTENT.MODULES}${query.toString() ? `?${query.toString()}` : ''}`;
       const response = await apiClient.get(url);
-      // API returns array directly, not wrapped in object
-      return { modules: response.data } as ModulesResponse;
+      
+      // Handle both new format (with pagination) and legacy format (array)
+      if (response.data?.modules && response.data?.pagination) {
+        // New format with pagination
+        return response.data as ModulesResponse;
+      } else if (Array.isArray(response.data?.modules)) {
+        // Format with modules array but no pagination
+        return { modules: response.data.modules } as ModulesResponse;
+      } else if (Array.isArray(response.data)) {
+        // Legacy format: API returns array directly
+        return { modules: response.data } as ModulesResponse;
+      }
+      
+      // Fallback
+      return { modules: [] } as ModulesResponse;
     },
     staleTime: 0, // Disable caching
     gcTime: 0, // Don't keep in cache
+    enabled: params?.level !== undefined, // Only fetch when level is provided
+  });
+};
+
+/**
+ * Get all modules list (without level filter) for backwards compatibility
+ */
+export const useAllModules = (params?: { lang?: SupportedLanguage }) => {
+  return useQuery({
+    queryKey: ['modules', 'all', params?.lang],
+    queryFn: async (): Promise<ModulesResponse> => {
+      const query = new URLSearchParams();
+      if (params?.lang) query.set('lang', params.lang);
+
+      const url = `${API_ENDPOINTS.CONTENT.MODULES}${query.toString() ? `?${query.toString()}` : ''}`;
+      const response = await apiClient.get(url);
+      
+      // Handle both new format (with pagination) and legacy format (array)
+      if (response.data?.modules) {
+        return response.data as ModulesResponse;
+      } else if (Array.isArray(response.data)) {
+        return { modules: response.data } as ModulesResponse;
+      }
+      
+      return { modules: [] } as ModulesResponse;
+    },
+    staleTime: 0,
+    gcTime: 0,
   });
 };
 

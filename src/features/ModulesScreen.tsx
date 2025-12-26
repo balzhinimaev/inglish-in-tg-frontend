@@ -1,4 +1,4 @@
-                            import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Screen, Card, Button, Loader } from '../components';
 import { PaywallBottomSheet } from '../components/PaywallBottomSheet';
@@ -6,16 +6,20 @@ import { useModules } from '../services/content';
 import apiClient from '../services/api';
 import { useUserStore } from '../store/user';
 import { useAppNavigation } from '../hooks/useAppNavigation';
-import { APP_STATES } from '../utils/constants';
+import { APP_STATES, type ModuleLevel } from '../utils/constants';
 import { tracking } from '../services/tracking';
-import { hapticFeedback, hideBackButton, getTelegramUser } from '../utils/telegram';
+import { hapticFeedback, getTelegramUser } from '../utils/telegram';
 import type { ModuleItem, LessonsResponse } from '../types';
 import { API_ENDPOINTS, SUPPORTED_LANGUAGES } from '../utils/constants';
 
-export const ModulesScreen: React.FC = () => {
-  const { user, hasActiveSubscription } = useUserStore();
+interface ModulesScreenProps {
+  level?: ModuleLevel;
+}
+
+export const ModulesScreen: React.FC<ModulesScreenProps> = ({ level: propLevel }) => {
+  const { user, hasActiveSubscription, navigationParams } = useUserStore();
   const telegramUser = getTelegramUser();
-  const { navigateTo } = useAppNavigation();
+  const { navigateTo, setupBackButton } = useAppNavigation();
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [showFloatingButton, setShowFloatingButton] = useState(false);
@@ -25,7 +29,13 @@ export const ModulesScreen: React.FC = () => {
   const screenRef = useRef<HTMLDivElement>(null);
   const trackedModulesRef = useRef<Set<string>>(new Set()); // Отслеживаем уже отправленные модули
 
-  const { data, isLoading, error } = useModules({ lang: SUPPORTED_LANGUAGES.RU });
+  // Get level from props or navigation params
+  const level = propLevel || (navigationParams.level as ModuleLevel | undefined);
+
+  const { data, isLoading, error } = useModules({ 
+    level, 
+    lang: SUPPORTED_LANGUAGES.RU 
+  });
   const allModules = Array.isArray(data?.modules) ? data.modules : [];
 
   // Группируем модули по уровням для отображения (можно использовать для фильтрации)
@@ -47,9 +57,9 @@ export const ModulesScreen: React.FC = () => {
   }, [allModules, startIndex, endIndex]);
 
   useEffect(() => {
-    // Hide back button on modules screen
-    hideBackButton();
-  }, []);
+    // Setup back button to return to levels screen
+    setupBackButton();
+  }, [setupBackButton]);
 
   // Preload likely next screens' code-split chunks in background
   useEffect(() => {
@@ -297,8 +307,12 @@ export const ModulesScreen: React.FC = () => {
 
         {/* Header */}
         <div className="text-center mb-8 max-[300px]:mb-4">
-          <h1 className="text-2xl font-bold text-telegram-text mb-3 max-[300px]:text-xl max-[300px]:mb-2">Модули</h1>
-          <p className="text-telegram-hint text-lg max-[300px]:text-base max-[300px]:px-2">Выберите модуль для продолжения</p>
+          <h1 className="text-2xl font-bold text-telegram-text mb-3 max-[300px]:text-xl max-[300px]:mb-2">
+            {level ? `Модули ${level}` : 'Модули'}
+          </h1>
+          <p className="text-telegram-hint text-lg max-[300px]:text-base max-[300px]:px-2">
+            {level ? `Выберите модуль уровня ${level}` : 'Выберите модуль для продолжения'}
+          </p>
         </div>
 
 

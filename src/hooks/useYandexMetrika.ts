@@ -17,8 +17,10 @@ export const useYandexMetrika = () => {
           return 'desktop-bridge';
         case APP_STATES.ONBOARDING:
           return 'onboarding';
+        case APP_STATES.LEVELS:
+          return 'levels';
         case APP_STATES.MODULES:
-          return 'modules';
+          return `modules-${navigationParams.level || 'all'}`;
         case APP_STATES.LESSONS_LIST:
           return `lessons-list-${navigationParams.moduleRef || 'unknown'}`;
         case APP_STATES.LESSON:
