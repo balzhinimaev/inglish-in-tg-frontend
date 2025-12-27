@@ -207,11 +207,13 @@ export interface ModuleProgress {
   inProgress: number;
 }
 
+export type LocalizedText = string | Record<string, string>;
+
 export interface ModuleItem {
   moduleRef: string;
   level: 'A0' | 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'; // Уровни сложности
-  title: string;
-  description: string;
+  title: LocalizedText;
+  description: LocalizedText;
   tags: string[];
   order: number;
   progress?: ModuleProgress; // present only if userId provided
