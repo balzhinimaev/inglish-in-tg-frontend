@@ -71,25 +71,48 @@ export const ModuleVocabulary: React.FC<ModuleVocabularyProps> = ({
       return sortDirection === 'desc' ? -result : result;
     });
 
-    const learnedCount = vocabularyItems.filter(item => item.isLearned).length;
-    const stats = {
+    // Use progress from API if available, otherwise compute from vocabulary items
+    const stats = data?.progress ? {
+      total: data.progress.totalWords,
+      learned: data.progress.learnedWords,
+      notLearned: data.progress.notStartedWords,
+      progressPercentage: data.progress.progressPercentage
+    } : {
       total: vocabularyItems.length,
-      learned: learnedCount,
-      notLearned: vocabularyItems.length - learnedCount,
-      progressPercentage: vocabularyItems.length > 0 ? Math.round((learnedCount / vocabularyItems.length) * 100) : 0
+      learned: vocabularyItems.filter(item => item.isLearned).length,
+      notLearned: vocabularyItems.filter(item => !item.isLearned).length,
+      progressPercentage: vocabularyItems.length > 0 
+        ? Math.round((vocabularyItems.filter(item => item.isLearned).length / vocabularyItems.length) * 100) 
+        : 0
     };
 
     return { filteredVocabulary: filtered, stats };
-  }, [vocabularyItems, selectedFilter, sortBy, sortDirection]);
+  }, [vocabularyItems, selectedFilter, sortBy, sortDirection, data?.progress]);
 
   const handleWordClick = (wordId: string) => {
     hapticFeedback.selection();
     setExpandedWord(expandedWord === wordId ? null : wordId);
   };
 
-  const handleAudioPlay = (wordId: string, audioUrl?: string) => {
+  // Helper function to get audio URL from pronunciation or audioKey
+  const getAudioUrl = (word: { pronunciation?: string; audioKey?: string }): string | undefined => {
+    // If pronunciation is a valid URL (starts with http:// or https://), use it
+    if (word.pronunciation && (word.pronunciation.startsWith('http://') || word.pronunciation.startsWith('https://'))) {
+      return word.pronunciation;
+    }
+    
+    // Otherwise, try to build URL from audioKey
+    if (word.audioKey) {
+      return `https://englishintg.ru/audio/${word.audioKey}${word.audioKey.endsWith('.mp3') ? '' : '.mp3'}`;
+    }
+    
+    return undefined;
+  };
+
+  const handleAudioPlay = (wordId: string, word: { pronunciation?: string; audioKey?: string }) => {
+    const audioUrl = getAudioUrl(word);
     if (!audioUrl) {
-      console.warn('No audio URL provided for word:', wordId);
+      console.warn('No audio URL available for word:', wordId);
       return;
     }
     
@@ -360,11 +383,11 @@ export const ModuleVocabulary: React.FC<ModuleVocabularyProps> = ({
 
                 <div className="flex items-center gap-2">
                   {/* Audio button */}
-                  {word.pronunciation && (
+                  {(word.pronunciation || word.audioKey) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleAudioPlay(word.id, word.pronunciation);
+                        handleAudioPlay(word.id, word);
                       }}
                       className={`
                         p-2 rounded-full transition-all

@@ -22,6 +22,7 @@ type TestQuestion = {
   difficulty?: string;
   partOfSpeech?: string;
   pronunciation?: string;
+  audioKey?: string;
 };
 
 type TestResult = {
@@ -98,7 +99,8 @@ export const VocabularyTestScreen: React.FC<VocabularyTestScreenProps> = ({
         correctAnswer: word.translation,
         difficulty: word.difficulty,
         partOfSpeech: word.partOfSpeech,
-        pronunciation: word.pronunciation
+        pronunciation: word.pronunciation,
+        audioKey: word.audioKey
       });
     });
     
@@ -215,31 +217,47 @@ export const VocabularyTestScreen: React.FC<VocabularyTestScreenProps> = ({
     navigateTo(APP_STATES.MODULES, { level });
   };
 
+  // Helper function to get audio URL from pronunciation or audioKey
+  const getAudioUrl = (question: { pronunciation?: string; audioKey?: string }): string | undefined => {
+    // If pronunciation is a valid URL (starts with http:// or https://), use it
+    if (question.pronunciation && (question.pronunciation.startsWith('http://') || question.pronunciation.startsWith('https://'))) {
+      return question.pronunciation;
+    }
+    
+    // Otherwise, try to build URL from audioKey
+    if (question.audioKey) {
+      return `https://englishintg.ru/audio/${question.audioKey}${question.audioKey.endsWith('.mp3') ? '' : '.mp3'}`;
+    }
+    
+    return undefined;
+  };
+
   const handleAudioPlay = (wordId: string) => {
     hapticFeedback.selection();
     
-    let pronunciationUrl: string | undefined;
+    let question: TestQuestion | undefined;
     
     // Handle different types of wordId
     if (wordId.startsWith('wrong-')) {
       // For wrong answers section - get pronunciation from the wrong answer question
       const wrongIndex = parseInt(wordId.replace('wrong-', ''));
       const wrongAnswer = testResults.wrongAnswers[wrongIndex];
-      pronunciationUrl = wrongAnswer?.question?.pronunciation;
+      question = wrongAnswer?.question;
     } else {
       // For current question or regular questions
-      const question = testQuestions.find(q => q.id === wordId) || 
-                     testQuestions[currentQuestionIndex];
-      pronunciationUrl = question?.pronunciation;
+      question = testQuestions.find(q => q.id === wordId) || 
+                 testQuestions[currentQuestionIndex];
     }
     
-    if (!pronunciationUrl) {
-      console.warn('No pronunciation URL available for word:', wordId);
+    const audioUrl = question ? getAudioUrl(question) : undefined;
+    
+    if (!audioUrl) {
+      console.warn('No audio URL available for word:', wordId);
       return;
     }
     
     // Use the audio playback utility
-    playAudio(pronunciationUrl, wordId);
+    playAudio(audioUrl, wordId);
   };
 
   if (isLoading) {

@@ -287,7 +287,7 @@ export interface VocabularyItem {
   word: string;
   translation: string;
   transcription?: string;
-  pronunciation?: string; // URL to audio file
+  pronunciation?: string; // Transliteration (e.g., "хэллоу") or URL (for backward compatibility)
   partOfSpeech?: 'noun' | 'verb' | 'adjective' | 'adverb' | 'preposition' | 'conjunction' | 'interjection' | 'other';
   difficulty?: 'easy' | 'medium' | 'hard';
   examples?: {
@@ -296,8 +296,11 @@ export interface VocabularyItem {
   }[];
   tags?: string[];
   lessonRefs?: string[]; // Which lessons this word appears in
+  moduleRefs?: string[]; // Which modules this word appears in
+  audioKey?: string; // Key for audio file pronunciation
+  occurrenceCount?: number; // Number of occurrences of the word in the module
   imageUrl?: string;
-  isLearned?: boolean;
+  isLearned?: boolean; // Computed client-side from progress, if available
 }
 
 // Vocabulary Statistics API types
@@ -372,10 +375,18 @@ export interface VocabularyActivityItem {
   score?: number; // 0-100, for reviews
 }
 
+export interface ModuleVocabularyProgress {
+  totalWords: number;
+  learnedWords: number;
+  learningWords: number;
+  notStartedWords: number;
+  progressPercentage: number; // 0-100
+}
+
 export interface ModuleVocabularyResponse {
-  vocabulary: VocabularyItem[];
-  totalCount: number;
   moduleRef: string;
+  vocabulary: VocabularyItem[];
+  progress?: ModuleVocabularyProgress; // Only present if user is authenticated
 }
 
 // Detailed Lesson API types from /content/lessons/:lessonRef

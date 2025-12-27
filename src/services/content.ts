@@ -896,10 +896,9 @@ export const useModuleVocabulary = (params: { moduleRef: string; lang?: Supporte
     queryFn: async (): Promise<ModuleVocabularyResponse> => {
       try {
         const query = new URLSearchParams();
-        query.set('moduleRef', params.moduleRef);
         if (params.lang) query.set('lang', params.lang);
         
-        const url = `${API_ENDPOINTS.CONTENT.VOCABULARY}?${query.toString()}`;
+        const url = `/content/modules/${params.moduleRef}/vocabulary${query.toString() ? `?${query.toString()}` : ''}`;
         const response = await apiClient.get(url);
         return response.data as ModuleVocabularyResponse;
       } catch (error) {
@@ -1196,9 +1195,15 @@ function getMockModuleVocabulary(moduleRef: string): ModuleVocabularyResponse {
   ];
 
   return {
+    moduleRef,
     vocabulary: mockVocabulary,
-    totalCount: mockVocabulary.length,
-    moduleRef
+    progress: {
+      totalWords: mockVocabulary.length,
+      learnedWords: mockVocabulary.filter(v => v.isLearned).length,
+      learningWords: 0,
+      notStartedWords: mockVocabulary.filter(v => !v.isLearned).length,
+      progressPercentage: Math.round((mockVocabulary.filter(v => v.isLearned).length / mockVocabulary.length) * 100)
+    }
   };
 }
 

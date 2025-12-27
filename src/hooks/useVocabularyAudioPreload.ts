@@ -7,6 +7,21 @@ interface UseVocabularyAudioPreloadParams {
   vocabularyData?: ModuleVocabularyResponse;
 }
 
+// Helper function to get audio URL from pronunciation or audioKey
+const getAudioUrl = (word: { pronunciation?: string; audioKey?: string }): string | undefined => {
+  // If pronunciation is a valid URL (starts with http:// or https://), use it
+  if (word.pronunciation && (word.pronunciation.startsWith('http://') || word.pronunciation.startsWith('https://'))) {
+    return word.pronunciation;
+  }
+  
+  // Otherwise, try to build URL from audioKey
+  if (word.audioKey) {
+    return `https://englishintg.ru/audio/${word.audioKey}${word.audioKey.endsWith('.mp3') ? '' : '.mp3'}`;
+  }
+  
+  return undefined;
+};
+
 export const useVocabularyAudioPreload = ({
   activeTab,
   vocabularyData
@@ -21,8 +36,8 @@ export const useVocabularyAudioPreload = ({
     }
 
     const audioUrls = vocabularyData.vocabulary
-      .map(item => item.pronunciation)
-      .filter(Boolean) as string[];
+      .map(item => getAudioUrl(item))
+      .filter((url): url is string => Boolean(url));
 
     const newAudioUrls = audioUrls.filter(url => !loadedAudioUrls.has(url));
 
