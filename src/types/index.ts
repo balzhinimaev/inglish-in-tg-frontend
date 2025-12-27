@@ -215,6 +215,7 @@ export interface ModuleItem {
   title: LocalizedText;
   description: LocalizedText;
   tags: string[];
+  difficultyRating: number; // 1-5 rating
   order: number;
   progress?: ModuleProgress; // present only if userId provided
   requiresPro: boolean;
