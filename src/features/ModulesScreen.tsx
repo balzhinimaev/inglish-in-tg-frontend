@@ -6,7 +6,7 @@ import { useModules } from '../services/content';
 import apiClient from '../services/api';
 import { useUserStore } from '../store/user';
 import { useAppNavigation } from '../hooks/useAppNavigation';
-import { APP_STATES, type ModuleLevel } from '../utils/constants';
+import { APP_STATES, type ModuleLevel, type SupportedLanguage } from '../utils/constants';
 import { tracking } from '../services/tracking';
 import { hapticFeedback, getTelegramUser, showBackButton } from '../utils/telegram';
 import type { ModuleItem, LessonsResponse } from '../types';
@@ -29,8 +29,28 @@ export const ModulesScreen: React.FC<ModulesScreenProps> = ({ level: propLevel }
   const screenRef = useRef<HTMLDivElement>(null);
   const trackedModulesRef = useRef<Set<string>>(new Set()); // Отслеживаем уже отправленные модули
 
+  const getLocalizedText = (value: ModuleItem['title'], lang: SupportedLanguage) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    return (
+      value[lang] ??
+      value[SUPPORTED_LANGUAGES.RU] ??
+      value[SUPPORTED_LANGUAGES.EN] ??
+      Object.values(value)[0] ??
+      ''
+    );
+  };
+
   // Get level from props or navigation params
   const level = propLevel || (navigationParams.level as ModuleLevel | undefined);
+  const language = (
+    user?.languageCode ||
+    telegramUser?.language_code ||
+    SUPPORTED_LANGUAGES.RU
+  ).toLowerCase();
+  const normalizedLanguage = (Object.values(SUPPORTED_LANGUAGES) as string[]).includes(language)
+    ? (language as SupportedLanguage)
+    : SUPPORTED_LANGUAGES.RU;
 
   const { data, isLoading, error } = useModules({ 
     level, 
@@ -217,7 +237,7 @@ export const ModulesScreen: React.FC<ModulesScreenProps> = ({ level: propLevel }
       // Navigate to lessons list for this module, preserving the level
       navigateTo(APP_STATES.LESSONS_LIST, {
         moduleRef: module.moduleRef,
-        moduleTitle: module.title,
+        moduleTitle: getLocalizedText(module.title, normalizedLanguage),
         level: level || module.level // Use current level or module's level
       });
     } else {
@@ -330,6 +350,8 @@ export const ModulesScreen: React.FC<ModulesScreenProps> = ({ level: propLevel }
             const locked = !m.isAvailable;
             const proBadge = m.requiresPro;
             const progressRatio = m.progress ? Math.min(1, Math.max(0, (m.progress.completed + m.progress.inProgress) / Math.max(1, m.progress.total))) : 0;
+            const moduleTitle = getLocalizedText(m.title, normalizedLanguage);
+            const moduleDescription = getLocalizedText(m.description, normalizedLanguage);
 
             return (
               <Card key={m.moduleRef} clickable onClick={() => handleModuleClick(m)} className={`${locked ? 'opacity-60 bg-telegram-secondary-bg border-telegram-secondary-bg' : ''} max-[300px]:px-3 max-[300px]:py-3`}>
@@ -351,7 +373,7 @@ export const ModulesScreen: React.FC<ModulesScreenProps> = ({ level: propLevel }
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 max-[300px]:mb-0.5">
-                      <h3 className={`font-semibold text-lg ${locked ? 'text-telegram-hint' : 'text-telegram-text'} max-[300px]:text-base max-[300px]:leading-tight truncate`}>{m.title}</h3>
+                      <h3 className={`font-semibold text-lg ${locked ? 'text-telegram-hint' : 'text-telegram-text'} max-[300px]:text-base max-[300px]:leading-tight truncate`}>{moduleTitle}</h3>
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${locked ? 'bg-telegram-card-bg text-telegram-hint' : 'bg-telegram-button text-telegram-button-text'} max-[300px]:px-1.5 max-[300px]:text-xs`}>
                         {m.level}
                       </span>
@@ -361,7 +383,7 @@ export const ModulesScreen: React.FC<ModulesScreenProps> = ({ level: propLevel }
                         </span>
                       )}
                     </div>
-                    <div className={`text-sm mb-3 ${locked ? 'text-telegram-hint opacity-70' : 'text-telegram-hint'} max-[300px]:text-xs max-[300px]:mb-2 max-[300px]:leading-tight`}>{m.description}</div>
+                    <div className={`text-sm mb-3 ${locked ? 'text-telegram-hint opacity-70' : 'text-telegram-hint'} max-[300px]:text-xs max-[300px]:mb-2 max-[300px]:leading-tight`}>{moduleDescription}</div>
 
                     {/* Progress */}
                     {m.progress && (
@@ -679,5 +701,4 @@ export const ModulesScreen: React.FC<ModulesScreenProps> = ({ level: propLevel }
     </>
   );
 };
-
 
