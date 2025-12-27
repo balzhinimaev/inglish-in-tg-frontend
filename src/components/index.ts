@@ -23,3 +23,4 @@ export { VocabularyChart } from './VocabularyChart';
 export { ModuleVocabulary } from './ModuleVocabulary';
 export { TabSwitch } from './TabSwitch';
 export { CurrencySwitch } from './CurrencySwitch';
+export { ModuleCard } from './ModuleCard';

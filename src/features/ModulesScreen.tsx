@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Screen, Card, Button, Loader } from '../components';
+import { Screen, Button, Loader, ModuleCard } from '../components';
 import { PaywallBottomSheet } from '../components/PaywallBottomSheet';
 import { useModules } from '../services/content';
 import apiClient from '../services/api';
@@ -345,73 +345,15 @@ export const ModulesScreen: React.FC<ModulesScreenProps> = ({ level: propLevel }
         </div>
 
 
-        <div className="space-y-4 max-[300px]:space-y-2">
-          {modules.map((m) => {
-            const locked = !m.isAvailable;
-            const proBadge = m.requiresPro;
-            const progressRatio = m.progress ? Math.min(1, Math.max(0, (m.progress.completed + m.progress.inProgress) / Math.max(1, m.progress.total))) : 0;
-            const moduleTitle = getLocalizedText(m.title, normalizedLanguage);
-            const moduleDescription = getLocalizedText(m.description, normalizedLanguage);
-
-            return (
-              <Card key={m.moduleRef} clickable onClick={() => handleModuleClick(m)} className={`${locked ? 'opacity-60 bg-telegram-secondary-bg border-telegram-secondary-bg' : ''} max-[300px]:px-3 max-[300px]:py-3`}>
-                <div className="flex items-start gap-4 max-[300px]:gap-2.5">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${locked ? 'bg-telegram-card-bg' : 'bg-telegram-button'} max-[300px]:w-8 max-[300px]:h-8`}>
-                    {locked ? (
-                      <svg className="w-6 h-6 text-telegram-hint max-[300px]:w-4 max-[300px]:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                        <path d="M12 1v6"/>
-                      </svg>
-                    ) : (
-                      <svg className="w-6 h-6 text-telegram-button-text max-[300px]:w-4 max-[300px]:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                      </svg>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 max-[300px]:mb-0.5">
-                      <h3 className={`font-semibold text-lg ${locked ? 'text-telegram-hint' : 'text-telegram-text'} max-[300px]:text-base max-[300px]:leading-tight truncate`}>{moduleTitle}</h3>
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${locked ? 'bg-telegram-card-bg text-telegram-hint' : 'bg-telegram-button text-telegram-button-text'} max-[300px]:px-1.5 max-[300px]:text-xs`}>
-                        {m.level}
-                      </span>
-                      {proBadge && (
-                        <span className="ml-2 px-2 py-0.5 text-[10px] rounded-full bg-telegram-card-bg text-telegram-accent border border-white/10 max-[300px]:px-1.5 max-[300px]:py-0.5 max-[300px]:text-[9px] max-[300px]:ml-1 shrink-0">
-                          PRO
-                        </span>
-                      )}
-                    </div>
-                    <div className={`text-sm mb-3 ${locked ? 'text-telegram-hint opacity-70' : 'text-telegram-hint'} max-[300px]:text-xs max-[300px]:mb-2 max-[300px]:leading-tight`}>{moduleDescription}</div>
-
-                    {/* Progress */}
-                    {m.progress && (
-                      <div className="w-full h-2 rounded-full bg-telegram-secondary-bg overflow-hidden border border-white/10 max-[300px]:h-1.5">
-                        <div
-                          className="h-full bg-telegram-accent rounded-full transition-all"
-                          style={{ width: `${Math.round(progressRatio * 100)}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right chevron or lock */}
-                  <div className="pt-1 shrink-0">
-                    {locked ? (
-                      <svg className="w-5 h-5 text-telegram-hint max-[300px]:w-4 max-[300px]:h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5 text-telegram-hint max-[300px]:w-4 max-[300px]:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
+        <div className="space-y-4 max-[300px]:space-y-3">
+          {modules.map((m) => (
+            <ModuleCard
+              key={m.moduleRef}
+              module={m}
+              onClick={() => handleModuleClick(m)}
+              language={normalizedLanguage}
+            />
+          ))}
         </div>
 
         {/* Pagination - OnboardingScreen style */}
