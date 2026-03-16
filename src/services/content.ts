@@ -3,7 +3,12 @@ import apiClient from './api';
 import { API_ENDPOINTS, ModuleLevel, SupportedLanguage } from '../utils/constants';
 import { Lesson, PaywallProduct, ModulesResponse, LessonsResponse, LessonResponse, ModuleVocabularyResponse, VocabularyItem } from '../types';
 import { getUserId } from '../utils/userId';
-import { normalizeDetailedLesson, normalizeLessonItem } from './taskNormalizer';
+import { normalizeDetailedLesson, normalizeLessonItem, type NormalizerTelemetryEvent } from './taskNormalizer';
+import { tracking } from './tracking';
+
+const reportNormalizerEvent = (event: NormalizerTelemetryEvent) => {
+  tracking.custom('task_normalization_warning', event);
+};
 
 /**
  * Get lesson data
@@ -215,10 +220,10 @@ export const useDetailedLesson = (params: { lessonRef: string; lang?: SupportedL
           const v2Response = await apiClient.get(v2Url);
           const data = v2Response.data;
           if (data?.lesson) {
-            return { lesson: normalizeDetailedLesson(data.lesson) } as LessonResponse;
+            return { lesson: normalizeDetailedLesson(data.lesson, reportNormalizerEvent) } as LessonResponse;
           }
           if (data?.lessonRef) {
-            return { lesson: normalizeDetailedLesson(data) } as LessonResponse;
+            return { lesson: normalizeDetailedLesson(data, reportNormalizerEvent) } as LessonResponse;
           }
         } catch (e) {
           // ignore and try legacy below
@@ -229,10 +234,10 @@ export const useDetailedLesson = (params: { lessonRef: string; lang?: SupportedL
         const legacyResponse = await apiClient.get(legacyUrl);
         const legacyData = legacyResponse.data;
         if (legacyData?.lesson) {
-          return { lesson: normalizeDetailedLesson(legacyData.lesson) } as LessonResponse;
+          return { lesson: normalizeDetailedLesson(legacyData.lesson, reportNormalizerEvent) } as LessonResponse;
         }
         if (legacyData?.lessonRef) {
-          return { lesson: normalizeDetailedLesson(legacyData) } as LessonResponse;
+          return { lesson: normalizeDetailedLesson(legacyData, reportNormalizerEvent) } as LessonResponse;
         }
         throw new Error('Invalid lesson detail payload');
       } catch (error) {

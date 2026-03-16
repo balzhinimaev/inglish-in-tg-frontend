@@ -14,7 +14,8 @@
     "type-check": "tsc --noEmit",
     "clean": "rimraf node_modules package-lock.json dist",
     "setup": "npm install && npm run type-check",
-    "validate:lessons": "tsx scripts/validate-lessons.ts"
+    "validate:lessons": "tsx scripts/validate-lessons.ts",
+    "test:task-normalizer": "tsx scripts/test-task-normalizer.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.17.19",
