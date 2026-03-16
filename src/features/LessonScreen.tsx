@@ -32,6 +32,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
   const [showResults, setShowResults] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [lastValidation, setLastValidation] = useState<{ isCorrect: boolean; feedback?: string; explanation?: string } | null>(null);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const taskStartedAtRef = useRef<number>(Date.now());
   
   // Fetch lesson and subscription data
@@ -50,6 +51,31 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
 
 
   const isLoading = lessonLoading || entitlementLoading;
+
+  const parseRuntimeError = (error: any): string => {
+    const status = error?.response?.status;
+    const payload = error?.response?.data;
+    const code = payload?.code || payload?.errorCode;
+    const message = payload?.message || payload?.error;
+
+    if (code === 'PREREQ_NOT_MET') {
+      return 'Этот урок пока недоступен: сначала заверши предыдущий.';
+    }
+
+    if (status === 403 && String(message || '').toLowerCase().includes('prereq')) {
+      return 'Этот урок пока недоступен: сначала заверши предыдущий.';
+    }
+
+    if (status === 400) {
+      return 'Некорректный формат ответа. Попробуй ещё раз.';
+    }
+
+    if (status === 401) {
+      return 'Сессия истекла. Перезапусти мини‑приложение.';
+    }
+
+    return 'Не удалось отправить ответ. Проверь интернет и попробуй ещё раз.';
+  };
 
   // Setup navigation
   useEffect(() => {
@@ -82,6 +108,13 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
           console.warn('Failed to start lesson session', e);
         }
+        const message = parseRuntimeError(e);
+        setRuntimeError(message);
+        tracking.custom('lesson_runtime_error', {
+          lessonRef: lesson.lessonRef,
+          stage: 'start-session',
+          message,
+        });
       });
   }, [lesson, sessionId, startSession]);
 
@@ -119,6 +152,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     const isLastTask = currentTaskIndex >= tasks.length - 1;
 
     try {
+      setRuntimeError(null);
       const validation = await submitAnswer.mutateAsync({
         lessonRef: lesson.lessonRef,
         taskRef: currentTask.ref,
@@ -154,7 +188,14 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
       }
     } catch (e) {
       console.error('submit-answer failed', e);
-      alert('Не удалось отправить ответ. Проверь интернет и попробуй ещё раз.');
+      const message = parseRuntimeError(e);
+      setRuntimeError(message);
+      tracking.custom('lesson_runtime_error', {
+        lessonRef: lesson.lessonRef,
+        taskRef: currentTask.ref,
+        taskIndex: currentTaskIndex,
+        message,
+      });
     }
   };
 
@@ -210,6 +251,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         await endSession.mutateAsync({ sessionId });
       } catch (e) {
         console.warn('Failed to end lesson session', e);
+        setRuntimeError(parseRuntimeError(e));
       }
     }
 
@@ -482,6 +524,13 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
             </div>
           )}
         </div>
+
+        {/* Runtime Error */}
+        {runtimeError && (
+          <Card className="mb-4 border border-red-500/30">
+            <div className="text-sm text-red-300">{runtimeError}</div>
+          </Card>
+        )}
 
         {/* Current Task */}
         {currentTask ? (
