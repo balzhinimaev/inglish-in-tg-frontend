@@ -49,6 +49,55 @@ export const TASK_TYPES_CONFIG: Record<TaskType, TaskTypeInfo> = {
     icon: '🔊',
     color: 'rgba(245, 101, 101, 0.8)',
     description: 'Аудирование'
+  },
+  choice: {
+    type: 'choice',
+    label: 'Тест',
+    icon: '✓',
+    color: 'rgba(59, 130, 246, 0.8)',
+    description: 'Выбор правильного ответа'
+  },
+  match: {
+    type: 'match',
+    label: 'Соединить',
+    icon: '⚡',
+    color: 'rgba(168, 85, 247, 0.8)',
+    description: 'Соединение слов с переводом'
+  },
+  gap: {
+    type: 'gap',
+    label: 'Вставить',
+    icon: '✎',
+    color: 'rgba(34, 197, 94, 0.8)',
+    description: 'Заполнение пропусков'
+  },
+  listen: {
+    type: 'listen',
+    label: 'Слушать',
+    icon: '🔊',
+    color: 'rgba(245, 101, 101, 0.8)',
+    description: 'Аудирование'
+  },
+  speak: {
+    type: 'speak',
+    label: 'Говорить',
+    icon: '🎤',
+    color: 'rgba(244, 114, 182, 0.8)',
+    description: 'Произношение и речь'
+  },
+  order: {
+    type: 'order',
+    label: 'Порядок',
+    icon: '🧩',
+    color: 'rgba(14, 165, 233, 0.8)',
+    description: 'Сборка предложения'
+  },
+  translate: {
+    type: 'translate',
+    label: 'Перевод',
+    icon: '🌐',
+    color: 'rgba(99, 102, 241, 0.8)',
+    description: 'Перевод фраз'
   }
 };
 

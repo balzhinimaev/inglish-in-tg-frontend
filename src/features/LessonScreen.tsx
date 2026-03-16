@@ -5,6 +5,7 @@ import { useUserStore } from '../store/user';
 import { useDetailedLesson } from '../services/content';
 import { useEntitlements } from '../services/entitlements';
 import { useEndLessonSession, useStartLessonSession, useSubmitAnswer } from '../services/lessonRuntime';
+import { serializeAnswer } from '../services/answerSerializer';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { useTrackAction } from '../hooks/useYandexMetrika';
 import { tracking } from '../services/tracking';
@@ -207,7 +208,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
       const validation = await submitAnswer.mutateAsync({
         lessonRef: lesson.lessonRef,
         taskRef: currentTask.ref,
-        userAnswer: JSON.stringify(answer),
+        userAnswer: serializeAnswer(currentTask as any, answer),
         durationMs,
         sessionId: sessionId || undefined,
         lastTaskIndex: tasks.length - 1,

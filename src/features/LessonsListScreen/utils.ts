@@ -18,13 +18,17 @@ export const getDefaultTaskTypes = (lessonType: LessonType): TaskType[] => {
 export const mapApiTaskTypes = (apiTaskTypes: string[]): TaskType[] => {
   const taskTypeMapping: Record<string, TaskType> = {
     choice: 'multiple_choice',
-    translate: 'flashcard',
+    multiple_choice: 'multiple_choice',
     gap: 'gap_fill',
+    gap_fill: 'gap_fill',
+    listen: 'listening',
     listening: 'listening',
+    match: 'matching',
     matching: 'matching',
     flashcard: 'flashcard',
-    multiple_choice: 'multiple_choice',
-    gap_fill: 'gap_fill'
+    translate: 'translate',
+    speak: 'speak',
+    order: 'order'
   };
 
   const mappedTypes = apiTaskTypes

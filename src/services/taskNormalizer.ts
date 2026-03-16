@@ -19,7 +19,9 @@ const TASK_TYPE_MAP: Record<string, string> = {
   match: 'matching',
   matching: 'matching',
   flashcard: 'flashcard',
-  translate: 'flashcard',
+  translate: 'translate',
+  speak: 'speak',
+  order: 'order',
 };
 
 const KNOWN_TASK_TYPES = new Set([
@@ -28,6 +30,9 @@ const KNOWN_TASK_TYPES = new Set([
   'listening',
   'matching',
   'flashcard',
+  'translate',
+  'speak',
+  'order',
 ]);
 
 function emitTelemetry(event: NormalizerTelemetryEvent, report?: TelemetryReporter) {

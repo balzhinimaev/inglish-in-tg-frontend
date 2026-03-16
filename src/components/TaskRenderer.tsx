@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button, Card } from './index';
 import type { Task } from '../types';
 
@@ -8,493 +8,230 @@ interface TaskRendererProps {
   onSkip?: () => void;
 }
 
-export const TaskRenderer: React.FC<TaskRendererProps> = ({ 
-  task, 
-  onAnswer, 
-  onSkip 
-}) => {
+const shuffle = <T,>(items: T[]): T[] => {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
+export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSkip }) => {
   const [selectedAnswer, setSelectedAnswer] = useState<any>(null);
+  const [textInput, setTextInput] = useState('');
   const [isRevealed, setIsRevealed] = useState(false);
-  const [userInput] = useState('');
-  
-  // All useState hooks must be at the top level - not inside conditions!
-  const [showTranscript, setShowTranscript] = useState(false);
-  const [selectedBlanks, setSelectedBlanks] = useState<string[]>([]);
-  const [matches, setMatches] = useState<{[key: string]: string}>({});
-  // Audio playback functionality is available but not implemented in this component yet
-  // const { playAudio } = useAudioPlayback();
 
-  // Reset state when task changes
-  useEffect(() => {
-    setSelectedAnswer(null);
-    setIsRevealed(false);
-    setShowTranscript(false);
-    setMatches({});
-    
-    // Initialize selectedBlanks based on task data
-    if (task.type === 'gap_fill' && task.data.blanks) {
-      setSelectedBlanks(new Array(task.data.blanks.length).fill(''));
-    } else {
-      setSelectedBlanks([]);
-    }
-  }, [task]);
+  // order task state
+  const [orderedTokens, setOrderedTokens] = useState<string[]>([]);
 
-  const handleAnswer = () => {
-    if (selectedAnswer !== null || userInput) {
-      onAnswer(selectedAnswer !== null ? selectedAnswer : userInput);
-    }
-  };
+  // matching state
+  const [activeLeft, setActiveLeft] = useState<string | null>(null);
+  const [matches, setMatches] = useState<Record<string, string>>({});
 
-  // Flashcard Task
-  if (task.type === 'flashcard') {
-    const { front, back, pronunciation, example, audio } = task.data;
-    
+  const normalizedType = task.type;
+
+  const matchingPairs = useMemo(() => {
+    if (normalizedType !== 'matching' && normalizedType !== 'match') return [];
+    const pairs = Array.isArray(task.data?.pairs) ? task.data.pairs : [];
+    return pairs.map((p: any) => ({
+      left: p?.left ?? p?.english ?? '',
+      right: p?.right ?? p?.russian ?? '',
+    }));
+  }, [normalizedType, task.data]);
+
+  const rightOptions = useMemo(() => {
+    return shuffle(matchingPairs.map((p) => p.right));
+  }, [matchingPairs]);
+
+  // Flashcard
+  if (normalizedType === 'flashcard') {
+    const { front, back, example } = task.data;
     return (
-      <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
-        <div className="text-center">
-          <div className="mb-6">
-            <div className={`min-h-[120px] flex items-center justify-center p-4 rounded-xl transition-all duration-500 cursor-pointer hover:shadow-md ${
-              isRevealed 
-                ? 'bg-gradient-to-br from-telegram-accent/10 to-telegram-accent/5 border border-telegram-accent/20' 
-                : 'bg-telegram-secondary-bg hover:bg-telegram-secondary-bg/80'
-            }`}>
-              <div className={`transition-all duration-500 ${isRevealed ? 'animate-pulse' : ''}`}>
-                <h3 className={`text-2xl font-bold text-telegram-text mb-2 transition-all duration-300 ${
-                  isRevealed ? 'scale-105' : ''
-                }`}>
-                  {isRevealed ? back : front}
-                </h3>
-                {isRevealed && pronunciation && (
-                  <p className="text-telegram-hint text-sm mb-2 animate-fade-in">
-                    {pronunciation}
-                  </p>
-                )}
-                {isRevealed && example && (
-                  <p className="text-telegram-hint text-sm italic animate-fade-in">
-                    "{example}"
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
+      <Card className="p-6">
+        <h3 className="text-xl font-bold text-telegram-text mb-4 text-center">{isRevealed ? back : front}</h3>
+        {isRevealed && example && <p className="text-sm text-telegram-hint mb-4">{example}</p>}
 
-          {audio && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                // TODO: Play audio
-                if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
-                  console.log('Playing audio:', audio);
-                }
-              }}
-              className="mb-4"
-            >
-              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-              </svg>
-              Прослушать
-            </Button>
-          )}
-
-          <div className="space-y-3">
-            {!isRevealed ? (
-              <Button
-                fullWidth
-                onClick={() => setIsRevealed(true)}
-                className="bg-telegram-accent hover:bg-telegram-accent/90 text-white hover:scale-105 transition-all duration-200 hover:shadow-lg group"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <span>Показать перевод</span>
-                  <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
-              </Button>
-            ) : (
-              <div className="animate-fade-in space-y-3">
-                <Button
-                  fullWidth
-                  variant="primary"
-                  onClick={() => onAnswer('correct')}
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white hover:scale-105 transition-all duration-200 hover:shadow-lg transform border-green-400/30 hover:border-green-300/50"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="text-lg">✓</span>
-                    <span>Знаю</span>
-                  </span>
-                </Button>
-                <Button
-                  fullWidth
-                  variant="ghost"
-                  onClick={() => onAnswer('incorrect')}
-                  className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/20 hover:scale-105 transition-all duration-200 border border-orange-500/30 hover:border-orange-400/50"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="text-lg">⏱</span>
-                    <span>Повторить позже</span>
-                  </span>
-                </Button>
-              </div>
-            )}
+        {!isRevealed ? (
+          <Button fullWidth onClick={() => setIsRevealed(true)}>Показать перевод</Button>
+        ) : (
+          <div className="space-y-2">
+            <Button fullWidth onClick={() => onAnswer('correct')}>Знаю</Button>
+            <Button fullWidth variant="ghost" onClick={() => onAnswer('incorrect')}>Повторить</Button>
           </div>
-        </div>
+        )}
       </Card>
     );
   }
 
-  // Multiple Choice Task
-  if (task.type === 'multiple_choice') {
-    const { question, options, audio } = task.data;
-    
+  // Multiple choice / choice / listening with options
+  if (normalizedType === 'multiple_choice' || normalizedType === 'choice' || normalizedType === 'listening' || normalizedType === 'listen') {
+    const question = task.data?.question || 'Выберите ответ';
+    const options: string[] = Array.isArray(task.data?.options) ? task.data.options : [];
+
     return (
-      <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.01]">
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-telegram-text mb-4 transition-colors duration-200">
-            {question}
-          </h3>
-          
-          {audio && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                // TODO: Play audio
-                if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
-                  console.log('Playing audio:', audio);
-                }
-              }}
-              className="mb-4"
+      <Card className="p-6">
+        <h3 className="text-lg font-bold text-telegram-text mb-4">{question}</h3>
+        <div className="space-y-2 mb-4">
+          {options.map((opt, idx) => (
+            <button
+              key={idx}
+              onClick={() => setSelectedAnswer(idx)}
+              className={`w-full p-3 text-left rounded-lg border ${selectedAnswer === idx ? 'border-telegram-accent bg-telegram-accent/10' : 'border-telegram-hint/30'}`}
             >
-              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-              </svg>
-              Прослушать
-            </Button>
-          )}
-          
-          <div className="space-y-3">
-            {options.map((option: string, index: number) => (
+              {opt}
+            </button>
+          ))}
+        </div>
+        <Button fullWidth disabled={selectedAnswer === null} onClick={() => onAnswer(selectedAnswer)}>Ответить</Button>
+      </Card>
+    );
+  }
+
+  // Gap (single input fallback)
+  if (normalizedType === 'gap_fill' || normalizedType === 'gap') {
+    const text = task.data?.text || 'Введите ответ';
+
+    return (
+      <Card className="p-6">
+        <h3 className="text-lg font-bold text-telegram-text mb-4">Заполните пропуск</h3>
+        <p className="text-telegram-text mb-4">{text}</p>
+        <input
+          value={textInput}
+          onChange={(e) => setTextInput(e.target.value)}
+          placeholder="Ваш ответ"
+          className="w-full rounded-lg border border-telegram-hint/30 bg-transparent px-3 py-2 mb-4"
+        />
+        <Button fullWidth disabled={!textInput.trim()} onClick={() => onAnswer(textInput.trim())}>Проверить</Button>
+      </Card>
+    );
+  }
+
+  // Matching
+  if (normalizedType === 'matching' || normalizedType === 'match') {
+    return (
+      <Card className="p-6">
+        <h3 className="text-lg font-bold text-telegram-text mb-4">Сопоставьте пары</h3>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="space-y-2">
+            {matchingPairs.map((p) => (
               <button
-                key={index}
-                onClick={() => setSelectedAnswer(index)}
-                className={`w-full p-4 text-left rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-md group ${
-                  selectedAnswer === index 
-                    ? 'border-telegram-accent bg-gradient-to-r from-telegram-accent/10 to-telegram-accent/5 text-telegram-accent scale-[1.02] shadow-md' 
-                    : 'border-telegram-hint/20 bg-telegram-secondary-bg text-telegram-text hover:border-telegram-accent/50 hover:bg-telegram-secondary-bg/80'
-                }`}
+                key={p.left}
+                onClick={() => setActiveLeft(p.left)}
+                className={`w-full p-2 rounded border text-left ${activeLeft === p.left ? 'border-telegram-accent bg-telegram-accent/10' : 'border-telegram-hint/30'}`}
               >
-                <span className={`font-medium mr-3 transition-all duration-200 ${
-                  selectedAnswer === index ? 'text-telegram-accent' : 'text-telegram-hint group-hover:text-telegram-accent'
-                }`}>
-                  {String.fromCharCode(65 + index)}.
-                </span>
-                <span className="transition-colors duration-200">{option}</span>
+                {p.left}
+              </button>
+            ))}
+          </div>
+          <div className="space-y-2">
+            {rightOptions.map((right) => (
+              <button
+                key={right}
+                onClick={() => {
+                  if (!activeLeft) return;
+                  setMatches((prev) => ({ ...prev, [activeLeft]: right }));
+                  setActiveLeft(null);
+                }}
+                className="w-full p-2 rounded border border-telegram-hint/30 text-left"
+              >
+                {right}
               </button>
             ))}
           </div>
         </div>
+        <Button fullWidth disabled={Object.keys(matches).length < matchingPairs.length} onClick={() => onAnswer(matches)}>
+          Проверить
+        </Button>
+      </Card>
+    );
+  }
 
-        <div className="space-y-3">
-          <Button
-            fullWidth
-            onClick={handleAnswer}
-            disabled={selectedAnswer === null}
-            className="bg-telegram-accent hover:bg-telegram-accent/90 text-white disabled:opacity-50 hover:scale-105 transition-all duration-200 hover:shadow-lg disabled:hover:scale-100"
-          >
-            <span className="flex items-center justify-center gap-2">
-              <span>Ответить</span>
-              <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </span>
+  // Order
+  if (normalizedType === 'order') {
+    const tokens: string[] = Array.isArray(task.data?.tokens) ? task.data.tokens : [];
+    const available = tokens.filter((t) => !orderedTokens.includes(t) || orderedTokens.filter(v => v === t).length < tokens.filter(v => v === t).length);
+
+    return (
+      <Card className="p-6">
+        <h3 className="text-lg font-bold text-telegram-text mb-4">Соберите предложение</h3>
+
+        <div className="min-h-12 rounded-lg border border-telegram-hint/30 p-2 mb-3 flex flex-wrap gap-2">
+          {orderedTokens.map((token, idx) => (
+            <button
+              key={`${token}-${idx}`}
+              className="px-2 py-1 rounded bg-telegram-accent/10 border border-telegram-accent/30"
+              onClick={() => setOrderedTokens((prev) => prev.filter((_, i) => i !== idx))}
+            >
+              {token}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          {available.map((token, idx) => (
+            <button
+              key={`${token}-pool-${idx}`}
+              className="px-2 py-1 rounded border border-telegram-hint/30"
+              onClick={() => setOrderedTokens((prev) => [...prev, token])}
+            >
+              {token}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          <Button fullWidth disabled={orderedTokens.length !== tokens.length} onClick={() => onAnswer(orderedTokens)}>
+            Проверить
           </Button>
-          
-          {onSkip && task.type !== 'multiple_choice' && (
-            <Button
-              fullWidth
-              variant="ghost"
-              onClick={onSkip}
-              className="text-telegram-hint hover:text-telegram-text hover:bg-telegram-secondary-bg/50 hover:scale-105 transition-all duration-200"
-            >
-              Пропустить
-            </Button>
-          )}
+          <Button variant="ghost" fullWidth onClick={() => setOrderedTokens([])}>
+            Сбросить
+          </Button>
         </div>
       </Card>
     );
   }
 
-  // Listening Task
-  if (task.type === 'listening') {
-    const { audio, transcript, question, options } = task.data;
-    
+  // Translate
+  if (normalizedType === 'translate') {
+    const question = task.data?.question || 'Переведите фразу';
     return (
-      <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.01]">
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-telegram-text mb-4 transition-colors duration-200">
-            Прослушайте аудио и ответьте на вопрос
-          </h3>
-          
-          <div className="bg-gradient-to-br from-telegram-secondary-bg to-telegram-secondary-bg/70 rounded-xl p-4 mb-4 border border-telegram-hint/10 hover:border-telegram-accent/20 transition-all duration-300">
-            <Button
-              fullWidth
-              onClick={() => {
-                // TODO: Play audio
-                if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
-                  console.log('Playing audio:', audio);
-                }
-              }}
-              className="bg-telegram-accent hover:bg-telegram-accent/90 text-white hover:scale-105 transition-all duration-200 hover:shadow-lg group"
-            >
-              <svg className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
-              Воспроизвести аудио
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowTranscript(!showTranscript)}
-              className="mt-2 w-full hover:bg-telegram-accent/10 hover:text-telegram-accent transition-all duration-200 hover:scale-105"
-            >
-              <span className="flex items-center justify-center gap-2">
-                <svg className={`w-4 h-4 transition-transform duration-200 ${showTranscript ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 9l6 6 6-6"/>
-                </svg>
-                {showTranscript ? 'Скрыть' : 'Показать'} транскрипцию
-              </span>
-            </Button>
-            
-            {showTranscript && (
-              <div className="mt-3 p-3 bg-telegram-bg rounded-lg border border-telegram-hint/20 text-sm text-telegram-hint animate-fade-in shadow-sm">
-                {transcript}
-              </div>
-            )}
-          </div>
-          
-          {question && (
-            <h4 className="text-lg font-semibold text-telegram-text mb-3">
-              {question}
-            </h4>
-          )}
-          
-          {options && options.length > 0 && (
-            <div className="space-y-2">
-              {options.map((option: string, index: number) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedAnswer(index)}
-                  className={`w-full p-3 text-left rounded-lg border-2 transition-all ${
-                    selectedAnswer === index 
-                      ? 'border-telegram-accent bg-telegram-accent/10 text-telegram-accent' 
-                      : 'border-telegram-hint/20 bg-telegram-secondary-bg text-telegram-text hover:border-telegram-accent/50'
-                  }`}
-                >
-                  <span className="font-medium mr-3">{String.fromCharCode(65 + index)}.</span>
-                  {option}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <Button
-          fullWidth
-          onClick={handleAnswer}
-          disabled={options && options.length > 0 ? selectedAnswer === null : false}
-          className="bg-telegram-accent hover:bg-telegram-accent/90 text-white disabled:opacity-50 hover:scale-105 transition-all duration-200 hover:shadow-lg disabled:hover:scale-100"
-        >
-          <span className="flex items-center justify-center gap-2">
-            <span>{options && options.length > 0 ? 'Ответить' : 'Продолжить'}</span>
-            <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </span>
-        </Button>
+      <Card className="p-6">
+        <h3 className="text-lg font-bold text-telegram-text mb-4">{question}</h3>
+        <textarea
+          value={textInput}
+          onChange={(e) => setTextInput(e.target.value)}
+          placeholder="Введите перевод"
+          className="w-full rounded-lg border border-telegram-hint/30 bg-transparent px-3 py-2 mb-4 min-h-24"
+        />
+        <Button fullWidth disabled={!textInput.trim()} onClick={() => onAnswer(textInput.trim())}>Ответить</Button>
       </Card>
     );
   }
 
-  // Gap Fill Task
-  if (task.type === 'gap_fill') {
-    const { text, blanks, options, translation } = task.data;
-    
+  // Speak (text fallback)
+  if (normalizedType === 'speak') {
+    const prompt = task.data?.prompt || 'Произнесите/введите ответ';
     return (
-      <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.01]">
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-telegram-text mb-4 transition-colors duration-200">
-            Заполните пропуски
-          </h3>
-          
-          <div className="bg-gradient-to-br from-telegram-secondary-bg to-telegram-secondary-bg/70 rounded-xl p-4 mb-4 border border-telegram-hint/10 hover:border-telegram-accent/20 transition-all duration-300">
-            <div className="text-lg text-telegram-text mb-2">
-              {text.split('{{}}').map((part: string, index: number) => (
-                <React.Fragment key={index}>
-                  {part}
-                  {index < blanks.length && (
-                    <select
-                      value={selectedBlanks[index]}
-                      onChange={(e) => {
-                        const newBlanks = [...selectedBlanks];
-                        newBlanks[index] = e.target.value;
-                        setSelectedBlanks(newBlanks);
-                      }}
-                      className="mx-2 px-3 py-1 border border-telegram-hint/30 rounded-lg bg-telegram-bg text-telegram-text hover:border-telegram-accent/50 focus:border-telegram-accent focus:ring-2 focus:ring-telegram-accent/20 transition-all duration-200"
-                    >
-                      <option value="">---</option>
-                      {options[index]?.map((option: string) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            
-            {translation && (
-              <p className="text-sm text-telegram-hint italic mt-3">
-                Перевод: {translation}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <Button
-          fullWidth
-          onClick={() => onAnswer(selectedBlanks)}
-          disabled={selectedBlanks.some(blank => blank === '')}
-          className="bg-telegram-accent hover:bg-telegram-accent/90 text-white disabled:opacity-50 hover:scale-105 transition-all duration-200 hover:shadow-lg disabled:hover:scale-100"
-        >
-          <span className="flex items-center justify-center gap-2">
-            <span>Проверить</span>
-            <svg className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 12l2 2 4-4"/>
-            </svg>
-          </span>
-        </Button>
+      <Card className="p-6">
+        <h3 className="text-lg font-bold text-telegram-text mb-4">{prompt}</h3>
+        <input
+          value={textInput}
+          onChange={(e) => setTextInput(e.target.value)}
+          placeholder="Введите то, что произнесли"
+          className="w-full rounded-lg border border-telegram-hint/30 bg-transparent px-3 py-2 mb-4"
+        />
+        <Button fullWidth disabled={!textInput.trim()} onClick={() => onAnswer(textInput.trim())}>Проверить</Button>
       </Card>
     );
   }
 
-  // Matching Task
-  if (task.type === 'matching') {
-    const { pairs, instructions } = task.data;
-    
-    return (
-      <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.01]">
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-telegram-text mb-2 transition-colors duration-200">
-            Сопоставление
-          </h3>
-          <p className="text-telegram-hint mb-4 transition-colors duration-200">{instructions}</p>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h4 className="font-semibold text-telegram-text mb-3">Английский</h4>
-              <div className="space-y-2">
-                {pairs.map((pair: any, index: number) => (
-                  <div
-                    key={index}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-md group ${
-                      matches[pair.english] 
-                        ? 'border-telegram-accent bg-gradient-to-r from-telegram-accent/10 to-telegram-accent/5 scale-105 shadow-md' 
-                        : 'border-telegram-hint/20 bg-telegram-secondary-bg hover:border-telegram-accent/50 hover:bg-telegram-secondary-bg/80'
-                    }`}
-                    onClick={() => {
-                      // Reset all matches for this english word
-                      const newMatches = { ...matches };
-                      if (newMatches[pair.english]) {
-                        delete newMatches[pair.english];
-                      }
-                      setMatches(newMatches);
-                    }}
-                  >
-                    <span className={`transition-colors duration-200 ${
-                      matches[pair.english] ? 'text-telegram-accent' : 'group-hover:text-telegram-accent'
-                    }`}>
-                      {pair.english}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-telegram-text mb-3">Русский</h4>
-              <div className="space-y-2">
-                {pairs.map((pair: any, index: number) => (
-                  <div
-                    key={index}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-md group ${
-                      Object.values(matches).includes(pair.russian)
-                        ? 'border-telegram-accent bg-gradient-to-r from-telegram-accent/10 to-telegram-accent/5 scale-105 shadow-md' 
-                        : 'border-telegram-hint/20 bg-telegram-secondary-bg hover:border-telegram-accent/50 hover:bg-telegram-secondary-bg/80'
-                    }`}
-                    onClick={() => {
-                      // Find english word for this russian
-                      const englishWord = pairs.find((p: any) => p.russian === pair.russian)?.english;
-                      if (englishWord) {
-                        setMatches(prev => ({
-                          ...prev,
-                          [englishWord]: pair.russian
-                        }));
-                      }
-                    }}
-                  >
-                    <span className={`transition-colors duration-200 ${
-                      Object.values(matches).includes(pair.russian) ? 'text-telegram-accent' : 'group-hover:text-telegram-accent'
-                    }`}>
-                      {pair.russian}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Button
-          fullWidth
-          onClick={() => onAnswer(matches)}
-          disabled={Object.keys(matches).length !== pairs.length}
-          className="bg-telegram-accent hover:bg-telegram-accent/90 text-white disabled:opacity-50 hover:scale-105 transition-all duration-200 hover:shadow-lg disabled:hover:scale-100"
-        >
-          <span className="flex items-center justify-center gap-2">
-            <span>Проверить соответствия</span>
-            <svg className="w-4 h-4 transition-transform duration-200 group-hover:rotate-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M8 18l4-4 4 4"/>
-              <path d="M8 6l4 4 4-4"/>
-            </svg>
-          </span>
-        </Button>
-      </Card>
-    );
-  }
-
-  // Default fallback for unknown task types
   return (
     <Card className="p-6">
-      <div className="text-center">
-        <p className="text-telegram-hint">
-          Неизвестный тип задания: {task.type}
-        </p>
-        <pre className="text-xs text-telegram-hint bg-telegram-secondary-bg p-3 rounded mt-3">
-          {JSON.stringify(task.data, null, 2)}
-        </pre>
-        <Button
-          fullWidth
-          onClick={() => onAnswer('skip')}
-          className="mt-4"
-        >
-          Пропустить
-        </Button>
-      </div>
+      <p className="text-telegram-hint text-sm mb-3">Неизвестный тип задания: {task.type}</p>
+      {onSkip && (
+        <Button fullWidth variant="ghost" onClick={onSkip}>Пропустить</Button>
+      )}
     </Card>
   );
 };

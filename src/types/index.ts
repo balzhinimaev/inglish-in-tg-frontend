@@ -250,7 +250,19 @@ export type LessonType = 'vocabulary' | 'grammar' | 'listening' | 'speaking' | '
 export type LessonDifficulty = 'easy' | 'medium' | 'hard';
 
 // Task types for lessons
-export type TaskType = 'flashcard' | 'multiple_choice' | 'matching' | 'gap_fill' | 'listening';
+export type TaskType =
+  | 'flashcard'
+  | 'multiple_choice'
+  | 'choice'
+  | 'matching'
+  | 'match'
+  | 'gap_fill'
+  | 'gap'
+  | 'listening'
+  | 'listen'
+  | 'speak'
+  | 'order'
+  | 'translate';
 
 export interface TaskTypeInfo {
   type: TaskType;
