@@ -68,7 +68,9 @@ export const jwtUtils = {
 - **Защищенные эндпоинты** (с JWT токеном):
   - `/content/modules` - модули курса
   - `/content/lessons` - уроки
-  - `/progress/session` - прогресс пользователя
+  - `/progress/sessions/start` - старт учебной сессии
+  - `/progress/submit-answer` - серверная проверка ответа и запись попытки
+  - `/progress/sessions/:sessionId/end` - завершение учебной сессии
   - `/profile` - профиль пользователя
 
 ### 4. Обновленный User Store
@@ -84,19 +86,22 @@ interface UserState extends AuthState {
 }
 ```
 
-### 5. Новый сервис прогресса
+### 5. Новый runtime-сервис урока
 
-#### В `src/services/progress.ts`:
+#### В `src/services/lessonRuntime.ts`:
 ```typescript
-export const useSaveProgressSession = () => {
-  return useMutation({
-    mutationFn: async (data: ProgressSessionRequest): Promise<ProgressSessionResponse> => {
-      const response = await apiClient.post(API_ENDPOINTS.PROGRESS.SESSION, data);
-      return response.data;
-    },
-  });
-};
+// POST /progress/sessions/start
+useStartLessonSession()
+
+// POST /progress/submit-answer (with Idempotency-Key)
+useSubmitAnswer()
+
+// POST /progress/sessions/:sessionId/end
+useEndLessonSession()
 ```
+
+> В актуальном флоу прогресс и проверка ответов идут через runtime-эндпоинты,
+> а не через legacy `/progress/session`.
 
 ## Процесс авторизации
 

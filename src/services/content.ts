@@ -3,6 +3,7 @@ import apiClient from './api';
 import { API_ENDPOINTS, ModuleLevel, SupportedLanguage } from '../utils/constants';
 import { Lesson, PaywallProduct, ModulesResponse, LessonsResponse, LessonResponse, ModuleVocabularyResponse, VocabularyItem } from '../types';
 import { getUserId } from '../utils/userId';
+import { normalizeDetailedLesson, normalizeLessonItem } from './taskNormalizer';
 
 /**
  * Get lesson data
@@ -176,7 +177,7 @@ export const useLessons = (params: { moduleRef: string; lang?: SupportedLanguage
         const v2Resp = await apiClient.get(v2Url);
         const lessons = Array.isArray(v2Resp.data) ? v2Resp.data : v2Resp.data?.lessons;
         if (Array.isArray(lessons)) {
-          return { lessons } as LessonsResponse;
+          return { lessons: lessons.map(normalizeLessonItem) } as LessonsResponse;
         }
       } catch (_) {
         // fall back to legacy endpoint below
@@ -190,7 +191,7 @@ export const useLessons = (params: { moduleRef: string; lang?: SupportedLanguage
       const legacyUrl = `${API_ENDPOINTS.CONTENT.LESSONS}?${legacyQuery.toString()}`;
       const legacyResp = await apiClient.get(legacyUrl);
       const legacyLessons = Array.isArray(legacyResp.data) ? legacyResp.data : legacyResp.data?.lessons;
-      return { lessons: legacyLessons || [] } as LessonsResponse;
+      return { lessons: (legacyLessons || []).map(normalizeLessonItem) } as LessonsResponse;
     },
     staleTime: 0, // Disable caching
     gcTime: 0, // Don't keep in cache
@@ -214,10 +215,10 @@ export const useDetailedLesson = (params: { lessonRef: string; lang?: SupportedL
           const v2Response = await apiClient.get(v2Url);
           const data = v2Response.data;
           if (data?.lesson) {
-            return data as LessonResponse;
+            return { lesson: normalizeDetailedLesson(data.lesson) } as LessonResponse;
           }
           if (data?.lessonRef) {
-            return { lesson: data } as LessonResponse;
+            return { lesson: normalizeDetailedLesson(data) } as LessonResponse;
           }
         } catch (e) {
           // ignore and try legacy below
@@ -228,10 +229,10 @@ export const useDetailedLesson = (params: { lessonRef: string; lang?: SupportedL
         const legacyResponse = await apiClient.get(legacyUrl);
         const legacyData = legacyResponse.data;
         if (legacyData?.lesson) {
-          return legacyData as LessonResponse;
+          return { lesson: normalizeDetailedLesson(legacyData.lesson) } as LessonResponse;
         }
         if (legacyData?.lessonRef) {
-          return { lesson: legacyData } as LessonResponse;
+          return { lesson: normalizeDetailedLesson(legacyData) } as LessonResponse;
         }
         throw new Error('Invalid lesson detail payload');
       } catch (error) {

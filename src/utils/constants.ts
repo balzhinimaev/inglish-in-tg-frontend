@@ -40,7 +40,10 @@ export const API_ENDPOINTS = {
     BOT_START: '/leads/bot_start',
   },
   PROGRESS: {
-    SESSION: '/progress/session',
+    SESSIONS_START: '/progress/sessions/start',
+    SESSIONS_END: '/progress/sessions', // use /:sessionId/end
+    SUBMIT_ANSWER: '/progress/submit-answer',
+    LESSONS: '/progress/lessons',
   },
 } as const;
 

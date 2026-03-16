@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Screen, Card, Button, Loader, LessonProgress, TaskRenderer } from '../components';
 import { Breadcrumbs } from './LessonsListScreen/Breadcrumbs';
 import { useUserStore } from '../store/user';
 import { useDetailedLesson } from '../services/content';
 import { useEntitlements } from '../services/entitlements';
+import { useEndLessonSession, useStartLessonSession, useSubmitAnswer } from '../services/lessonRuntime';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { useTrackAction } from '../hooks/useYandexMetrika';
 import { tracking } from '../services/tracking';
@@ -29,6 +30,9 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
   const [completedTasks, setCompletedTasks] = useState<number[]>([]);
   const [, setTaskAnswers] = useState<Record<number, any>>({});
   const [showResults, setShowResults] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [lastValidation, setLastValidation] = useState<{ isCorrect: boolean; feedback?: string; explanation?: string } | null>(null);
+  const taskStartedAtRef = useRef<number>(Date.now());
   
   // Fetch lesson and subscription data
   const { data: lessonData, isLoading: lessonLoading, error: lessonError } = useDetailedLesson({ 
@@ -36,7 +40,10 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     lang: 'ru' 
   });
   const { isLoading: entitlementLoading } = useEntitlements(user?.userId || null);
-  
+  const startSession = useStartLessonSession();
+  const submitAnswer = useSubmitAnswer();
+  const endSession = useEndLessonSession();
+
   const lesson = lessonData?.lesson;
   const tasks = lesson?.tasks || [];
   const currentTask = tasks[currentTaskIndex];
@@ -60,6 +67,24 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     }
   }, [lesson, hasStartedLesson, trackLessonStart]);
 
+  // Start backend runtime session once lesson is loaded
+  useEffect(() => {
+    if (!lesson || sessionId || startSession.isPending) return;
+
+    startSession
+      .mutateAsync({
+        moduleRef: lesson.moduleRef,
+        lessonRef: lesson.lessonRef,
+        source: 'home',
+      })
+      .then((res) => setSessionId(res.sessionId))
+      .catch((e) => {
+        if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+          console.warn('Failed to start lesson session', e);
+        }
+      });
+  }, [lesson, sessionId, startSession]);
+
   // Initialize lesson state based on progress
   useEffect(() => {
     if (lesson?.progress?.lastTaskIndex !== undefined) {
@@ -67,47 +92,74 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     }
   }, [lesson]);
 
+  useEffect(() => {
+    taskStartedAtRef.current = Date.now();
+    setLastValidation(null);
+  }, [currentTaskIndex]);
+
   // Hide Telegram Main Button since we use interface button
   useEffect(() => {
     hideMainButton();
     return () => hideMainButton();
   }, []);
 
-  const handleTaskAnswer = (answer: any) => {
+  const handleTaskAnswer = async (answer: any) => {
+    if (submitAnswer.isPending) return;
     hapticFeedback.selection();
-    
-    // Save the answer
+
+    // Save the answer locally for UX/debug
     setTaskAnswers(prev => ({
       ...prev,
       [currentTaskIndex]: answer
     }));
-    
-    // Mark task as completed
-    if (!completedTasks.includes(currentTaskIndex)) {
-      setCompletedTasks(prev => [...prev, currentTaskIndex]);
-    }
-    
-    // Track task completion
-    if (lesson && currentTask) {
+
+    if (!lesson || !currentTask) return;
+
+    const durationMs = Math.max(0, Date.now() - taskStartedAtRef.current);
+    const isLastTask = currentTaskIndex >= tasks.length - 1;
+
+    try {
+      const validation = await submitAnswer.mutateAsync({
+        lessonRef: lesson.lessonRef,
+        taskRef: currentTask.ref,
+        userAnswer: JSON.stringify(answer),
+        durationMs,
+        sessionId: sessionId || undefined,
+        lastTaskIndex: tasks.length - 1,
+        isLastTask,
+      });
+
+      setLastValidation({
+        isCorrect: validation.isCorrect,
+        feedback: validation.feedback,
+        explanation: validation.explanation,
+      });
+
+      if (!completedTasks.includes(currentTaskIndex)) {
+        setCompletedTasks(prev => [...prev, currentTaskIndex]);
+      }
+
       tracking.custom('task_completed', {
         lessonRef: lesson.lessonRef,
         taskRef: currentTask.ref,
         taskType: currentTask.type,
         taskIndex: currentTaskIndex,
-        answer: answer
       });
-    }
-    
-    // Move to next task or show results
-    if (currentTaskIndex < tasks.length - 1) {
-      setCurrentTaskIndex(prev => prev + 1);
-    } else {
-      setShowResults(true);
-      handleCompleteLesson();
+
+      if (!isLastTask) {
+        setTimeout(() => setCurrentTaskIndex(prev => prev + 1), 500);
+      } else {
+        setShowResults(true);
+        handleCompleteLesson();
+      }
+    } catch (e) {
+      console.error('submit-answer failed', e);
+      alert('Не удалось отправить ответ. Проверь интернет и попробуй ещё раз.');
     }
   };
 
   const handleTaskSkip = () => {
+    if (submitAnswer.isPending) return;
     hapticFeedback.impact('light');
     
     // Track skip
@@ -136,7 +188,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     }
   };
 
-  const handleCompleteLesson = () => {
+  const handleCompleteLesson = async () => {
     if (!hasStartedLesson || !lessonStartTime || !lesson) return;
 
     const duration = Math.floor((Date.now() - lessonStartTime.getTime()) / 1000);
@@ -152,6 +204,14 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
       completedTasks: completedTasks.length,
       totalTasks: tasks.length
     });
+
+    if (sessionId) {
+      try {
+        await endSession.mutateAsync({ sessionId });
+      } catch (e) {
+        console.warn('Failed to end lesson session', e);
+      }
+    }
 
     // Check if user has subscription for continued access
     if (hasActiveSubscription()) {
@@ -426,11 +486,25 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         {/* Current Task */}
         {currentTask ? (
           <div className="mb-6">
+            {lastValidation && (
+              <Card className={`mb-3 ${lastValidation.isCorrect ? 'border border-green-500/30' : 'border border-orange-500/30'}`}>
+                <div className="text-sm">
+                  <div className={lastValidation.isCorrect ? 'text-green-400 font-semibold' : 'text-orange-400 font-semibold'}>
+                    {lastValidation.isCorrect ? 'Верно ✅' : 'Почти, попробуй ещё 💡'}
+                  </div>
+                  {lastValidation.feedback && <div className="text-telegram-hint mt-1">{lastValidation.feedback}</div>}
+                  {lastValidation.explanation && <div className="text-telegram-hint mt-1">{lastValidation.explanation}</div>}
+                </div>
+              </Card>
+            )}
             <TaskRenderer
               task={currentTask}
               onAnswer={handleTaskAnswer}
               onSkip={handleTaskSkip}
             />
+            {submitAnswer.isPending && (
+              <p className="text-xs text-telegram-hint mt-2 text-center">Проверяем ответ…</p>
+            )}
           </div>
         ) : (
           <Card className="p-6">

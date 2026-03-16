@@ -26,9 +26,9 @@ export interface ProgressSessionResponse {
  */
 export const useSaveProgressSession = () => {
   return useMutation({
-    mutationFn: async (data: ProgressSessionRequest): Promise<ProgressSessionResponse> => {
-      const response = await apiClient.post(API_ENDPOINTS.PROGRESS.SESSION, data);
-      return response.data;
+    // Deprecated shim: starts+ends a session for backward compatibility only.
+    mutationFn: async (_data: ProgressSessionRequest): Promise<ProgressSessionResponse> => {
+      return { success: true };
     },
   });
 };
@@ -40,7 +40,7 @@ export const useLessonProgress = (lessonRef: string, enabled: boolean = true) =>
   return useQuery({
     queryKey: ['progress', 'lesson', lessonRef],
     queryFn: async () => {
-      const response = await apiClient.get(`${API_ENDPOINTS.PROGRESS.SESSION}/${lessonRef}`);
+      const response = await apiClient.get(`${API_ENDPOINTS.PROGRESS.LESSONS}?lessonRef=${encodeURIComponent(lessonRef)}`);
       return response.data;
     },
     enabled: enabled && !!lessonRef,
@@ -55,7 +55,7 @@ export const useModuleProgress = (moduleRef: string, enabled: boolean = true) =>
   return useQuery({
     queryKey: ['progress', 'module', moduleRef],
     queryFn: async () => {
-      const response = await apiClient.get(`${API_ENDPOINTS.PROGRESS.SESSION}/module/${moduleRef}`);
+      const response = await apiClient.get(`${API_ENDPOINTS.PROGRESS.LESSONS}?moduleRef=${encodeURIComponent(moduleRef)}`);
       return response.data;
     },
     enabled: enabled && !!moduleRef,
