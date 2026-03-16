@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Screen, Card, Button, Loader, LessonProgress, TaskRenderer } from '../components';
 import { Breadcrumbs } from './LessonsListScreen/Breadcrumbs';
 import { useUserStore } from '../store/user';
@@ -20,8 +20,8 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
   
   // Get lessonRef from navigation parameters
   const lessonRef = navigationParams?.lessonRef || '';
-  
-  
+  const runtimeStorageKey = useMemo(() => `lesson_runtime:${lessonRef}`, [lessonRef]);
+
   const [hasStartedLesson, setHasStartedLesson] = useState(false);
   const [lessonStartTime, setLessonStartTime] = useState<Date | null>(null);
   
@@ -118,17 +118,68 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
       });
   }, [lesson, sessionId, startSession]);
 
-  // Initialize lesson state based on progress
+  // Initialize lesson state based on progress + local recovery snapshot
   useEffect(() => {
-    if (lesson?.progress?.lastTaskIndex !== undefined) {
+    if (!lesson) return;
+
+    let recoveredIndex: number | undefined;
+    let recoveredSessionId: string | undefined;
+
+    try {
+      const raw = localStorage.getItem(runtimeStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { currentTaskIndex?: number; sessionId?: string; lessonRef?: string };
+        if (parsed.lessonRef === lesson.lessonRef) {
+          recoveredIndex = parsed.currentTaskIndex;
+          recoveredSessionId = parsed.sessionId;
+        }
+      }
+    } catch {
+      // ignore corrupted local recovery data
+    }
+
+    if (typeof recoveredIndex === 'number' && recoveredIndex >= 0) {
+      setCurrentTaskIndex(Math.min(recoveredIndex, Math.max(0, tasks.length - 1)));
+      tracking.custom('lesson_runtime_recovered', {
+        lessonRef: lesson.lessonRef,
+        recoveredTaskIndex: recoveredIndex,
+      });
+    } else if (lesson?.progress?.lastTaskIndex !== undefined) {
       setCurrentTaskIndex(lesson.progress.lastTaskIndex);
     }
-  }, [lesson]);
+
+    if (recoveredSessionId) {
+      setSessionId(recoveredSessionId);
+    }
+  }, [lesson, runtimeStorageKey, tasks.length]);
 
   useEffect(() => {
     taskStartedAtRef.current = Date.now();
     setLastValidation(null);
-  }, [currentTaskIndex]);
+
+    tracking.custom('task_seen', {
+      lessonRef,
+      taskIndex: currentTaskIndex,
+    });
+  }, [currentTaskIndex, lessonRef]);
+
+  // Persist runtime snapshot for session recovery
+  useEffect(() => {
+    if (!lessonRef) return;
+    try {
+      localStorage.setItem(
+        runtimeStorageKey,
+        JSON.stringify({
+          lessonRef,
+          currentTaskIndex,
+          sessionId,
+          updatedAt: Date.now(),
+        }),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [lessonRef, runtimeStorageKey, currentTaskIndex, sessionId]);
 
   // Hide Telegram Main Button since we use interface button
   useEffect(() => {
@@ -178,6 +229,14 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         taskRef: currentTask.ref,
         taskType: currentTask.type,
         taskIndex: currentTaskIndex,
+      });
+      tracking.custom('task_answer_result', {
+        lessonRef: lesson.lessonRef,
+        taskRef: currentTask.ref,
+        taskIndex: currentTaskIndex,
+        isCorrect: validation.isCorrect,
+        score: validation.score,
+        durationMs,
       });
 
       if (!isLastTask) {
@@ -253,6 +312,12 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         console.warn('Failed to end lesson session', e);
         setRuntimeError(parseRuntimeError(e));
       }
+    }
+
+    try {
+      localStorage.removeItem(runtimeStorageKey);
+    } catch {
+      // ignore
     }
 
     // Check if user has subscription for continued access
@@ -445,6 +510,12 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
                 setCurrentTaskIndex(0);
                 setCompletedTasks([]);
                 setTaskAnswers({});
+                setSessionId(null);
+                try {
+                  localStorage.removeItem(runtimeStorageKey);
+                } catch {
+                  // ignore
+                }
               }}
             >
               Пройти урок заново
