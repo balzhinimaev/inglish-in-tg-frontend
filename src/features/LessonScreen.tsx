@@ -243,11 +243,33 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         isLastTask,
       });
 
+      const isCorrect = Boolean(validation.isCorrect);
+
       setLastValidation({
-        isCorrect: validation.isCorrect,
+        isCorrect,
         feedback: validation.feedback,
-        explanation: validation.explanation,
+        explanation: validation.explanation || (currentTask.data as any)?.explanation,
       });
+
+      tracking.custom('task_answer_result', {
+        lessonRef: lesson.lessonRef,
+        taskRef: currentTask.ref,
+        taskIndex: currentTaskIndex,
+        isCorrect,
+        score: validation.score,
+        durationMs,
+      });
+
+      if (!isCorrect) {
+        hapticFeedback.notification('error');
+        tracking.custom('task_answer_incorrect', {
+          lessonRef: lesson.lessonRef,
+          taskRef: currentTask.ref,
+          taskType: currentTask.type,
+          taskIndex: currentTaskIndex,
+        });
+        return;
+      }
 
       if (!completedTasks.includes(currentTaskIndex)) {
         setCompletedTasks(prev => [...prev, currentTaskIndex]);
@@ -259,17 +281,9 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         taskType: currentTask.type,
         taskIndex: currentTaskIndex,
       });
-      tracking.custom('task_answer_result', {
-        lessonRef: lesson.lessonRef,
-        taskRef: currentTask.ref,
-        taskIndex: currentTaskIndex,
-        isCorrect: validation.isCorrect,
-        score: validation.score,
-        durationMs,
-      });
 
       if (!isLastTask) {
-        setTimeout(() => setCurrentTaskIndex(prev => prev + 1), 500);
+        setTimeout(() => setCurrentTaskIndex(prev => prev + 1), 700);
       } else {
         setShowResults(true);
         handleCompleteLesson();
