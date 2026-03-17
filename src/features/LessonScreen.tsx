@@ -634,6 +634,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
               </Card>
             )}
             <TaskRenderer
+              key={currentTask.ref}
               task={currentTask}
               onAnswer={handleTaskAnswer}
               onSkip={handleTaskSkip}

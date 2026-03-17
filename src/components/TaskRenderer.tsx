@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card } from './index';
 import type { Task } from '../types';
 
@@ -30,6 +30,15 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
   const [matches, setMatches] = useState<Record<string, string>>({});
 
   const normalizedType = task.type;
+
+  useEffect(() => {
+    setSelectedAnswer(null);
+    setTextInput('');
+    setIsRevealed(false);
+    setOrderedTokens([]);
+    setActiveLeft(null);
+    setMatches({});
+  }, [task.ref]);
 
   const matchingPairs = useMemo(() => {
     if (normalizedType !== 'matching' && normalizedType !== 'match') return [];
@@ -68,22 +77,53 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
   if (normalizedType === 'multiple_choice' || normalizedType === 'choice' || normalizedType === 'listening' || normalizedType === 'listen') {
     const question = task.data?.question || 'Выберите ответ';
     const options: string[] = Array.isArray(task.data?.options) ? task.data.options : [];
+    const hint = task.data?.hint;
 
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-bold text-telegram-text mb-4">{question}</h3>
-        <div className="space-y-2 mb-4">
-          {options.map((opt, idx) => (
-            <button
-              key={idx}
-              onClick={() => setSelectedAnswer(idx)}
-              className={`w-full p-3 text-left rounded-lg border ${selectedAnswer === idx ? 'border-telegram-accent bg-telegram-accent/10' : 'border-telegram-hint/30'}`}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-        <Button fullWidth disabled={selectedAnswer === null} onClick={() => onAnswer(selectedAnswer)}>Ответить</Button>
+        <h3 className="text-lg font-bold text-telegram-text mb-2">{question}</h3>
+        {hint && <p className="text-xs text-telegram-hint mb-3">💡 {hint}</p>}
+
+        {options.length > 0 ? (
+          <div className="space-y-2 mb-4">
+            {options.map((opt, idx) => {
+              const selected = selectedAnswer === idx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedAnswer(idx)}
+                  className={`w-full p-3 text-left rounded-lg border transition-all flex items-center gap-3 ${selected
+                    ? 'bg-telegram-accent text-white border-telegram-accent shadow-lg'
+                    : 'bg-telegram-secondary-bg/40 text-telegram-text border-telegram-hint/40 hover:bg-telegram-secondary-bg/70'
+                  }`}
+                >
+                  <span className={`w-6 h-6 rounded-full border flex items-center justify-center text-xs font-bold ${selected ? 'border-white bg-white/20' : 'border-telegram-hint/60'}`}>
+                    {String.fromCharCode(65 + idx)}
+                  </span>
+                  <span className="flex-1">{opt}</span>
+                  {selected && <span className="text-sm">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mb-4">
+            <input
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Введите ответ"
+              className="w-full rounded-lg border border-telegram-hint/40 bg-transparent px-3 py-2"
+            />
+          </div>
+        )}
+
+        <Button
+          fullWidth
+          disabled={options.length > 0 ? selectedAnswer === null : !textInput.trim()}
+          onClick={() => onAnswer(options.length > 0 ? selectedAnswer : textInput.trim())}
+        >
+          Ответить
+        </Button>
       </Card>
     );
   }
@@ -91,10 +131,12 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
   // Gap (single input fallback)
   if (normalizedType === 'gap_fill' || normalizedType === 'gap') {
     const text = task.data?.text || 'Введите ответ';
+    const hint = task.data?.hint;
 
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-bold text-telegram-text mb-4">Заполните пропуск</h3>
+        <h3 className="text-lg font-bold text-telegram-text mb-2">Заполните пропуск</h3>
+        {hint && <p className="text-xs text-telegram-hint mb-2">💡 {hint}</p>}
         <p className="text-telegram-text mb-4">{text}</p>
         <input
           value={textInput}
@@ -109,9 +151,12 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
 
   // Matching
   if (normalizedType === 'matching' || normalizedType === 'match') {
+    const hint = task.data?.hint;
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-bold text-telegram-text mb-4">Сопоставьте пары</h3>
+        <h3 className="text-lg font-bold text-telegram-text mb-1">Сопоставьте пары</h3>
+        <p className="text-xs text-telegram-hint mb-3">{Object.keys(matches).length}/{matchingPairs.length} пар</p>
+        {hint && <p className="text-xs text-telegram-hint mb-3">💡 {hint}</p>}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="space-y-2">
             {matchingPairs.map((p) => (
@@ -150,11 +195,14 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
   // Order
   if (normalizedType === 'order') {
     const tokens: string[] = Array.isArray(task.data?.tokens) ? task.data.tokens : [];
+    const hint = task.data?.hint;
     const available = tokens.filter((t) => !orderedTokens.includes(t) || orderedTokens.filter(v => v === t).length < tokens.filter(v => v === t).length);
 
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-bold text-telegram-text mb-4">Соберите предложение</h3>
+        <h3 className="text-lg font-bold text-telegram-text mb-1">Соберите предложение</h3>
+        <p className="text-xs text-telegram-hint mb-2">{orderedTokens.length}/{tokens.length} слов</p>
+        {hint && <p className="text-xs text-telegram-hint mb-3">💡 {hint}</p>}
 
         <div className="min-h-12 rounded-lg border border-telegram-hint/30 p-2 mb-3 flex flex-wrap gap-2">
           {orderedTokens.map((token, idx) => (
@@ -195,9 +243,11 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
   // Translate
   if (normalizedType === 'translate') {
     const question = task.data?.question || 'Переведите фразу';
+    const hint = task.data?.hint;
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-bold text-telegram-text mb-4">{question}</h3>
+        <h3 className="text-lg font-bold text-telegram-text mb-2">{question}</h3>
+        {hint && <p className="text-xs text-telegram-hint mb-3">💡 {hint}</p>}
         <textarea
           value={textInput}
           onChange={(e) => setTextInput(e.target.value)}
@@ -212,9 +262,11 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
   // Speak (text fallback)
   if (normalizedType === 'speak') {
     const prompt = task.data?.prompt || 'Произнесите/введите ответ';
+    const hint = task.data?.hint;
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-bold text-telegram-text mb-4">{prompt}</h3>
+        <h3 className="text-lg font-bold text-telegram-text mb-2">{prompt}</h3>
+        {hint && <p className="text-xs text-telegram-hint mb-3">💡 {hint}</p>}
         <input
           value={textInput}
           onChange={(e) => setTextInput(e.target.value)}
