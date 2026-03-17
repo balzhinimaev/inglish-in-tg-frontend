@@ -21,6 +21,17 @@ export interface ProgressSessionResponse {
   newLevel?: number;
 }
 
+export interface LessonProgressItem {
+  lessonRef: string;
+  moduleRef?: string;
+  status: 'not_started' | 'in_progress' | 'completed';
+  score?: number;
+  attempts?: number;
+  timeSpent?: number;
+  completedAt?: string;
+  updatedAt?: string;
+}
+
 /**
  * Save user progress for a lesson session
  */
@@ -60,5 +71,23 @@ export const useModuleProgress = (moduleRef: string, enabled: boolean = true) =>
     },
     enabled: enabled && !!moduleRef,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+/**
+ * Get lesson progress items for current user.
+ */
+export const useLessonsProgress = (params?: { status?: 'not_started' | 'in_progress' | 'completed'; enabled?: boolean }) => {
+  return useQuery({
+    queryKey: ['progress', 'lessons', params?.status],
+    queryFn: async (): Promise<{ items: LessonProgressItem[] }> => {
+      const query = new URLSearchParams();
+      if (params?.status) query.set('status', params.status);
+      const url = `${API_ENDPOINTS.PROGRESS.LESSONS}${query.toString() ? `?${query.toString()}` : ''}`;
+      const response = await apiClient.get(url);
+      return { items: response.data?.items || [] };
+    },
+    enabled: params?.enabled ?? true,
+    staleTime: 5 * 60 * 1000,
   });
 };

@@ -128,8 +128,7 @@ export const OnboardingScreen: React.FC = () => {
       await completeOnboardingMutation.mutateAsync({
         userId: user.userId,
         proficiencyLevel: selectedLevel,
-        // learningGoals: selectedGoals, // TODO: Add to API interface
-        // dailyGoalMinutes: selectedDailyGoal, // TODO: Add to API interface
+        learningGoals: selectedGoals,
       });
 
       // Update user state

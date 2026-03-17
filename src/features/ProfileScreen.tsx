@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Screen, Loader, ProgressChart, LearningStatsChart, VocabularyChart } from '../components';
 import { useUserStore } from '../store/user';
 import { useProfile } from '../services/profile';
 import { useEntitlements } from '../services/entitlements';
 import { useVocabularyStats } from '../services/vocabularyStats';
+import { useAllModules } from '../services/content';
+import { useLessonsProgress } from '../services/progress';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { APP_STATES } from '../utils/constants';
 import { getTelegramUser, hapticFeedback } from '../utils/telegram';
@@ -26,6 +28,8 @@ export const ProfileScreen: React.FC = () => {
     }
   );
   const { data: vocabularyStats, isLoading: vocabularyStatsLoading } = useVocabularyStats();
+  const { data: modulesData, isLoading: modulesLoading } = useAllModules({ lang: 'ru' });
+  const { data: lessonsProgressData, isLoading: lessonsProgressLoading } = useLessonsProgress();
 
   // Синхронизируем данные из React Query обратно в store при обновлении
   useEffect(() => {
@@ -34,21 +38,40 @@ export const ProfileScreen: React.FC = () => {
     }
   }, [entitlement, storeEntitlement, setEntitlement]);
 
-  const isLoading = profileLoading || entitlementLoading || vocabularyStatsLoading;
+  const isLoading = profileLoading || entitlementLoading || vocabularyStatsLoading || modulesLoading || lessonsProgressLoading;
   const telegramUser = getTelegramUser();
-  
+
   // Реальные данные из API
   const realXP = profile?.xpTotal || 0;
   const realStreak = vocabularyStats?.streak?.current || 0;
-  // TODO: Получить реальное количество завершенных уроков из API модулей
-  // Пока используем моковые данные для количества уроков
-  const completedLessons = 5; // Mock - нужно заменить на реальные данные из модулей
-  const totalLessons = 23; // Mock - нужно заменить на реальные данные из модулей
-  
+
+  const totalLessons = useMemo(() => {
+    return (modulesData?.modules || []).reduce((sum, module) => {
+      return sum + (module.progress?.total || 0);
+    }, 0);
+  }, [modulesData]);
+
+  const completedLessons = useMemo(() => {
+    return (modulesData?.modules || []).reduce((sum, module) => {
+      return sum + (module.progress?.completed || 0);
+    }, 0);
+  }, [modulesData]);
+
+  const totalTimeSeconds = useMemo(() => {
+    return (lessonsProgressData?.items || []).reduce((sum, item) => {
+      return sum + (item.timeSpent || 0);
+    }, 0);
+  }, [lessonsProgressData]);
+
+  const totalHours = Math.max(0, Math.round(totalTimeSeconds / 3600));
+  const moduleCount = modulesData?.modules?.length || 0;
+  const learnedWords = vocabularyStats?.summary?.learned || 0;
+
   // Animation states
   const [animatedLessons, setAnimatedLessons] = useState(0);
   const [animatedXP, setAnimatedXP] = useState(0);
   const [animatedStreak, setAnimatedStreak] = useState(0);
+  const [animatedHours, setAnimatedHours] = useState(0);
 
   // Setup navigation
   useEffect(() => {
@@ -60,6 +83,7 @@ export const ProfileScreen: React.FC = () => {
     const targetLessons = completedLessons;
     const targetXP = realXP;
     const targetStreak = realStreak;
+    const targetHours = totalHours;
 
     const animateCounter = (
       target: number,
@@ -83,13 +107,15 @@ export const ProfileScreen: React.FC = () => {
     const timer1 = animateCounter(targetLessons, setAnimatedLessons, 1500);
     const timer2 = animateCounter(targetXP, setAnimatedXP, 2000);
     const timer3 = animateCounter(targetStreak, setAnimatedStreak, 1800);
+    const timer4 = animateCounter(targetHours, setAnimatedHours, 1700);
 
     return () => {
       clearInterval(timer1);
       clearInterval(timer2);
       clearInterval(timer3);
+      clearInterval(timer4);
     };
-  }, []);
+  }, [completedLessons, realXP, realStreak, totalHours]);
 
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString('ru-RU', {
@@ -218,8 +244,7 @@ export const ProfileScreen: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-bold text-pink-800">
-              {/* TODO: Получить реальное время из API */}
-              {Math.round(animatedLessons * 0.5)}/12
+              {animatedHours}ч
             </div>
           </div>
         </div>
@@ -252,8 +277,8 @@ export const ProfileScreen: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <div className="font-semibold text-orange-800">Грамматика</div>
-                <div className="text-sm text-orange-600">3 урока</div>
+                <div className="font-semibold text-orange-800">Модули</div>
+                <div className="text-sm text-orange-600">{moduleCount} активных</div>
               </div>
             </div>
 
@@ -266,7 +291,7 @@ export const ProfileScreen: React.FC = () => {
               </div>
               <div>
                 <div className="font-semibold text-green-800">Словарь</div>
-                <div className="text-sm text-green-600">{animatedLessons - 3} уроков</div>
+                <div className="text-sm text-green-600">{learnedWords} слов выучено</div>
               </div>
             </div>
           </div>

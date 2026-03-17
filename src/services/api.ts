@@ -3,6 +3,8 @@ import { API_BASE_URL } from '../utils/constants';
 import { getTelegramInitData } from '../utils/telegram';
 import { jwtUtils } from './auth';
 
+const debug = import.meta.env.VITE_ENABLE_DEBUG_LOGGING;
+
 // Create axios instance
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -32,20 +34,24 @@ apiClient.interceptors.request.use(
         // This is important for signature validation
         const queryString = initData; // Use the original initData string directly
         
-        console.log('Auth verify request:', {
-          originalInitData: initData,
-          parsedParams: Object.fromEntries(params),
-          baseURL: config.baseURL
-        });
+        if (debug) {
+          console.log('Auth verify request:', {
+            originalInitData: initData,
+            parsedParams: Object.fromEntries(params),
+            baseURL: config.baseURL
+          });
+        }
         
         // Add parameters to URL
         const separator = config.url?.includes('?') ? '&' : '?';
         config.url = `${config.url}${separator}${queryString}`;
         
-        console.log('Auth verify request:', {
-          url: config.url,
-          baseURL: config.baseURL
-        });
+        if (debug) {
+          console.log('Auth verify request:', {
+            url: config.url,
+            baseURL: config.baseURL
+          });
+        }
       }
     }
     // For public endpoints, no auth needed
@@ -87,12 +93,14 @@ apiClient.interceptors.response.use(
     // Handle different error types
     if (error.response?.status === 401) {
       console.warn('Unauthorized - JWT token may be invalid or expired');
-      console.log('401 Error details:', {
-        url: error.config?.url,
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers
-      });
+      if (debug) {
+        console.log('401 Error details:', {
+          url: error.config?.url,
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      }
       // Remove invalid token
       jwtUtils.removeToken();
     } else if (error.response?.status === 403) {

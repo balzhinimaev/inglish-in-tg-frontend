@@ -12,11 +12,12 @@ export const PaywallScreen: React.FC = () => {
   const { navigateTo, setupBackButton } = useAppNavigation();
   const { trackPaywallView, trackPurchase } = useTrackAction();
   
-  const { data: paywallData, isLoading } = usePaywallData();
+  const { data: paywallData, isLoading, error: paywallError, refetch: refetchPaywall } = usePaywallData();
   const createPaymentMutation = useCreatePayment();
   const createStarsPaymentMutation = useCreateStarsPayment();
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<PaymentCurrency>('RUB');
+  const [paymentErrorMessage, setPaymentErrorMessage] = useState<string | null>(null);
   
   const products = paywallData?.products || [];
   
@@ -43,7 +44,8 @@ export const PaywallScreen: React.FC = () => {
   const handlePurchase = async (productId: string) => {
     try {
       setIsProcessing(true);
-      
+      setPaymentErrorMessage(null);
+
       // Find product by ID
       const product = products.find(p => p.id === productId);
       if (!product) {
@@ -105,8 +107,8 @@ export const PaywallScreen: React.FC = () => {
       
     } catch (error) {
       console.error('Payment creation failed:', error);
-      alert('Ошибка при создании платежа. Попробуйте еще раз.');
-      
+      setPaymentErrorMessage('Ошибка при создании платежа. Попробуйте ещё раз.');
+
       // Track payment error
       tracking.paymentError(productId, error instanceof Error ? error.message : 'Unknown error');
     } finally {
@@ -119,6 +121,19 @@ export const PaywallScreen: React.FC = () => {
     return (
       <Screen className="flex items-center justify-center">
         <Loader size="lg" text="Загрузка тарифов..." />
+      </Screen>
+    );
+  }
+
+  if (paywallError) {
+    return (
+      <Screen className="flex items-center justify-center">
+        <div className="max-w-sm text-center space-y-3">
+          <p className="text-telegram-text font-semibold">Не удалось загрузить тарифы</p>
+          <p className="text-telegram-hint text-sm">Проверь подключение и попробуй снова.</p>
+          <Button fullWidth onClick={() => refetchPaywall()}>Обновить</Button>
+          <Button variant="ghost" fullWidth onClick={() => navigateTo(APP_STATES.LEVELS)}>Назад</Button>
+        </div>
       </Screen>
     );
   }
@@ -161,6 +176,12 @@ export const PaywallScreen: React.FC = () => {
             Сейчас активны 1,247 пользователей
           </div>
         </div>
+
+        {paymentErrorMessage && (
+          <div className="mb-4 p-3 rounded-xl border border-red-400/30 bg-red-500/10 text-red-300 text-sm text-center">
+            {paymentErrorMessage}
+          </div>
+        )}
 
         {/* Benefits section */}
         <div className="mb-6">

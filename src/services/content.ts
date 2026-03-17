@@ -64,11 +64,13 @@ export const usePaywallData = () => {
         const response = await apiClient.get(`${API_ENDPOINTS.CONTENT.PAYWALL}?userId=${userId}`);
         return response.data;
       } catch (error) {
-        // Если API недоступен, используем mock данные
-        if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
-          console.log('Paywall API not available, using mock data:', error);
+        if (import.meta.env.DEV) {
+          if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+            console.log('Paywall API not available, using mock data in DEV:', error);
+          }
+          return getMockPaywallData();
         }
-        return getMockPaywallData();
+        throw error;
       }
     },
     staleTime: 0, // Disable caching
@@ -88,11 +90,13 @@ export const usePaywallProducts = () => {
         const response = await apiClient.post(API_ENDPOINTS.CONTENT.PAYWALL, {});
         return response.data.products || [];
       } catch (error) {
-        // Если API недоступен, используем mock данные
-        if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
-          console.log('Paywall API not available, using mock data:', error);
+        if (import.meta.env.DEV) {
+          if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+            console.log('Paywall products API not available, using mock data in DEV:', error);
+          }
+          return getMockPaywallProducts();
         }
-        return getMockPaywallProducts();
+        throw error;
       }
     },
     staleTime: 0, // Disable caching
@@ -908,10 +912,13 @@ export const useModuleVocabulary = (params: { moduleRef: string; lang?: Supporte
         const response = await apiClient.get(url);
         return response.data as ModuleVocabularyResponse;
       } catch (error) {
-        if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
-          console.log('API failed, using mock vocabulary data for module:', params.moduleRef, error);
+        if (import.meta.env.DEV) {
+          if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+            console.log('Vocabulary API failed, using mock data in DEV:', params.moduleRef, error);
+          }
+          return getMockModuleVocabulary(params.moduleRef);
         }
-        return getMockModuleVocabulary(params.moduleRef);
+        throw error;
       }
     },
     staleTime: 0, // Disable caching

@@ -16,19 +16,21 @@ export const LoaderScreen: React.FC = () => {
   // Check desktop after hooks
   const isDesktop = isDesktopBrowser();
   
+  const debug = import.meta.env.VITE_ENABLE_DEBUG_LOGGING;
+
   // Desktop detection effect
   useEffect(() => {
     // More conservative detection - only show QR if definitely desktop
     const shouldShowQR = isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user;
-    
+
     if (shouldShowQR) {
-      if (import.meta.env.VITE_ENABLE_DEBUG_LOGGING) {
+      if (debug) {
         console.log('Showing QR bridge screen - desktop browser without Telegram user');
       }
       navigateTo(APP_STATES.DESKTOP_BRIDGE);
       return;
     }
-  }, [navigateTo, isDesktop]);
+  }, [navigateTo, isDesktop, debug]);
 
   // Loading state effect
   useEffect(() => {
@@ -37,15 +39,17 @@ export const LoaderScreen: React.FC = () => {
 
   // Auth data processing effect
   useEffect(() => {
-    console.log('LoaderScreen auth effect:', {
-      isDesktop,
-      shouldShowQR: isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user,
-      error,
-      authData,
-      isAuthenticated,
-      user,
-      isLoading
-    });
+    if (debug) {
+      console.log('LoaderScreen auth effect:', {
+        isDesktop,
+        shouldShowQR: isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user,
+        error,
+        authData,
+        isAuthenticated,
+        user,
+        isLoading
+      });
+    }
 
     // Skip auth logic if showing QR screen
     const shouldShowQR = isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user;
@@ -61,8 +65,10 @@ export const LoaderScreen: React.FC = () => {
     }
 
     if (authData && isAuthenticated && user) {
-      console.log('Login user with data:', { user, accessToken: authData.accessToken });
-      
+      if (debug) {
+        console.log('Login user with data:', { user, accessToken: authData.accessToken });
+      }
+
       // Update user with data from authData
       const updatedUser = {
         ...user,
@@ -77,15 +83,15 @@ export const LoaderScreen: React.FC = () => {
 
       // Определяем следующий экран на основе состояния онбординга
       if (!authData.onboardingCompleted) {
-        console.log('Navigating to onboarding');
+        if (debug) console.log('Navigating to onboarding');
         navigateTo(APP_STATES.ONBOARDING);
       } else {
-        console.log('Navigating to levels');
+        if (debug) console.log('Navigating to levels');
         // После онбординга открываем экран выбора уровней
         navigateTo(APP_STATES.LEVELS);
       }
     }
-  }, [authData, error, isAuthenticated, user, login, setError, navigateTo, isDesktop, isLoading]);
+  }, [authData, error, isAuthenticated, user, login, setError, navigateTo, isDesktop, isLoading, debug]);
 
   // Don't show loader if showing QR screen
   const shouldShowQR = isDesktop && !window.Telegram?.WebApp?.initDataUnsafe?.user;

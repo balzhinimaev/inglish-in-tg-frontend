@@ -56,8 +56,9 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
   const parseRuntimeError = (error: any): string => {
     const status = error?.response?.status;
     const payload = error?.response?.data;
-    const code = payload?.code || payload?.errorCode;
-    const message = payload?.message || payload?.error;
+    const messageObj = payload?.message;
+    const code = payload?.code || payload?.errorCode || payload?.error || messageObj?.error;
+    const message = typeof messageObj === 'string' ? messageObj : (messageObj?.message || payload?.error);
 
     if (code === 'PREREQ_NOT_MET') {
       return 'Этот урок пока недоступен: сначала заверши предыдущий.';
@@ -76,6 +77,33 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     }
 
     return 'Не удалось отправить ответ. Проверь интернет и попробуй ещё раз.';
+  };
+
+  const getTaskTypeBadge = (type?: string) => {
+    switch (type) {
+      case 'flashcard':
+        return '🃏 Карточка';
+      case 'multiple_choice':
+      case 'choice':
+        return '❓ Выбор';
+      case 'listening':
+      case 'listen':
+        return '👂 Аудирование';
+      case 'gap_fill':
+      case 'gap':
+        return '📝 Пропуски';
+      case 'matching':
+      case 'match':
+        return '🔗 Сопоставление';
+      case 'order':
+        return '🧩 Порядок';
+      case 'translate':
+        return '🌐 Перевод';
+      case 'speak':
+        return '🎤 Произношение';
+      default:
+        return '📘 Задание';
+    }
   };
 
   // Setup navigation
@@ -321,26 +349,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
       // ignore
     }
 
-    // Check if user has subscription for continued access
-    if (hasActiveSubscription()) {
-      // User has subscription, could navigate to next lesson
-      // For now, just show completion message and go back to lessons list
-      setTimeout(() => {
-        alert(`Урок завершён! Ваш результат: ${score}% 🎉`);
-        navigateTo(APP_STATES.LESSONS_LIST, {
-          moduleRef: lesson.moduleRef,
-          moduleTitle: navigationParams?.moduleTitle || 'Модуль',
-          level: navigationParams?.level,
-          _overridePreviousScreen: APP_STATES.MODULES,
-          _overridePreviousScreenParams: { level: navigationParams?.level }
-        });
-      }, 1500);
-    } else {
-      // No subscription, show paywall after lesson
-      setTimeout(() => {
-        navigateTo(APP_STATES.PAYWALL);
-      }, 1500);
-    }
+    // Остаёмся на экране результатов — пользователь сам выбирает следующий шаг.
   };
 
 
@@ -503,6 +512,16 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
               Продолжить обучение
             </Button>
 
+            {!hasActiveSubscription() && (
+              <Button
+                fullWidth
+                variant="ghost"
+                onClick={() => navigateTo(APP_STATES.PAYWALL)}
+              >
+                Открыть Pro
+              </Button>
+            )}
+
             <Button
               variant="ghost"
               fullWidth
@@ -583,15 +602,11 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
           {currentTask && (
             <div className="flex items-center justify-center gap-2 mb-4">
               <div className="px-3 py-1 bg-telegram-accent/10 text-telegram-accent rounded-full text-xs font-medium uppercase">
-                {currentTask.type === 'flashcard' && '🃏 Карточка'}
-                {currentTask.type === 'multiple_choice' && '❓ Выбор'}
-                {currentTask.type === 'listening' && '👂 Аудирование'}
-                {currentTask.type === 'gap_fill' && '📝 Пропуски'}
-                {currentTask.type === 'matching' && '🔗 Сопоставление'}
+                {getTaskTypeBadge(currentTask.type)}
               </div>
-              
+
               <div className="text-xs text-telegram-hint">
-                ⏱ ~{Math.ceil((lesson?.estimatedMinutes || 0) / tasks.length)} мин
+                ⏱ ~{tasks.length > 0 ? Math.max(1, Math.ceil((lesson?.estimatedMinutes || 0) / tasks.length)) : 1} мин
               </div>
             </div>
           )}

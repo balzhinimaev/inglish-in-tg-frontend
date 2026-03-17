@@ -5,6 +5,8 @@ import { AuthVerifyResponse, BackendAuthVerifyResponse, OnboardingCompleteReques
 import { LearningGoal, DailyGoal } from '../utils/constants';
 import { getTelegramInitData, getTelegramUser } from '../utils/telegram';
 
+const debug = import.meta.env.VITE_ENABLE_DEBUG_LOGGING;
+
 /**
  * JWT Token utilities
  */
@@ -90,23 +92,27 @@ export const useVerifyUser = () => {
   return useQuery({
     queryKey: ['auth', 'verify'],
     queryFn: async (): Promise<AuthVerifyResponse> => {
-      console.log('Making auth verify request to:', API_ENDPOINTS.AUTH.VERIFY);
+      if (debug) {
+        console.log('Making auth verify request to:', API_ENDPOINTS.AUTH.VERIFY);
+      }
       const response = await apiClient.get(API_ENDPOINTS.AUTH.VERIFY);
 
-      console.log('Auth verify response:', {
-        status: response.status,
-        data: response.data,
-        headers: response.headers
-      });
+      if (debug) {
+        console.log('Auth verify response:', {
+          status: response.status,
+          data: response.data,
+          headers: response.headers
+        });
 
-      console.log('Full response data:', JSON.stringify(response.data, null, 2));
+        console.log('Full response data:', JSON.stringify(response.data, null, 2));
+      }
 
       const data = response.data as BackendAuthVerifyResponse;
       
       // Store JWT token if received
       if (data.accessToken) {
         jwtUtils.storeToken(data.accessToken);
-        console.log('JWT token stored');
+        if (debug) console.log('JWT token stored');
       } else {
         console.warn('No accessToken in response:', data);
       }
@@ -138,14 +144,16 @@ export const useAuth = () => {
   const telegramUser = getTelegramUser();
   const user = telegramUser ? convertApiUserToUser(telegramUser) : null;
   
-  console.log('useAuth hook state:', {
-    authData,
-    isLoading,
-    error,
-    hasAccessToken: !!authData?.accessToken,
-    hasUser: !!user,
-    telegramUser
-  });
+  if (debug) {
+    console.log('useAuth hook state:', {
+      authData,
+      isLoading,
+      error,
+      hasAccessToken: !!authData?.accessToken,
+      hasUser: !!user,
+      telegramUser
+    });
+  }
   
   return {
     authData,

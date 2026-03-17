@@ -198,6 +198,7 @@ export interface ProfileResponse {
 export interface OnboardingCompleteRequest {
   userId: number;
   proficiencyLevel: 'beginner' | 'intermediate' | 'advanced';
+  learningGoals?: string[];
 }
 
 // Modules API types
