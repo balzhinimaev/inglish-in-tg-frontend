@@ -24,6 +24,7 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
 
   // order task state
   const [orderedTokens, setOrderedTokens] = useState<string[]>([]);
+  const [orderPoolTokens, setOrderPoolTokens] = useState<string[]>([]);
 
   // matching state
   const [activeLeft, setActiveLeft] = useState<string | null>(null);
@@ -38,6 +39,9 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
     setOrderedTokens([]);
     setActiveLeft(null);
     setMatches({});
+
+    const nextTokens = Array.isArray(task.data?.tokens) ? task.data.tokens : [];
+    setOrderPoolTokens(shuffle(nextTokens));
   }, [task.ref]);
 
   const matchingPairs = useMemo(() => {
@@ -196,7 +200,8 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
   if (normalizedType === 'order') {
     const tokens: string[] = Array.isArray(task.data?.tokens) ? task.data.tokens : [];
     const hint = task.data?.hint;
-    const available = tokens.filter((t) => !orderedTokens.includes(t) || orderedTokens.filter(v => v === t).length < tokens.filter(v => v === t).length);
+    const sourceTokens = orderPoolTokens.length > 0 ? orderPoolTokens : tokens;
+    const available = sourceTokens.filter((t) => !orderedTokens.includes(t) || orderedTokens.filter(v => v === t).length < sourceTokens.filter(v => v === t).length);
 
     return (
       <Card className="p-6">
@@ -232,8 +237,15 @@ export const TaskRenderer: React.FC<TaskRendererProps> = ({ task, onAnswer, onSk
           <Button fullWidth disabled={orderedTokens.length !== tokens.length} onClick={() => onAnswer(orderedTokens)}>
             Проверить
           </Button>
-          <Button variant="ghost" fullWidth onClick={() => setOrderedTokens([])}>
-            Сбросить
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={() => {
+              setOrderedTokens([]);
+              setOrderPoolTokens(shuffle(tokens));
+            }}
+          >
+            Перемешать
           </Button>
         </div>
       </Card>
