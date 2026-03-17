@@ -33,6 +33,8 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
   const [showResults, setShowResults] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [lastValidation, setLastValidation] = useState<{ isCorrect: boolean; feedback?: string; explanation?: string } | null>(null);
+  const [awaitingUserAction, setAwaitingUserAction] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const taskStartedAtRef = useRef<number>(Date.now());
   
@@ -185,6 +187,8 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
   useEffect(() => {
     taskStartedAtRef.current = Date.now();
     setLastValidation(null);
+    setAwaitingUserAction(false);
+    setRetryNonce(0);
 
     tracking.custom('task_seen', {
       lessonRef,
@@ -217,7 +221,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
   }, []);
 
   const handleTaskAnswer = async (answer: any) => {
-    if (submitAnswer.isPending) return;
+    if (submitAnswer.isPending || awaitingUserAction) return;
     hapticFeedback.selection();
 
     // Save the answer locally for UX/debug
@@ -250,6 +254,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         feedback: validation.feedback,
         explanation: validation.explanation || (currentTask.data as any)?.explanation,
       });
+      setAwaitingUserAction(true);
 
       tracking.custom('task_answer_result', {
         lessonRef: lesson.lessonRef,
@@ -282,12 +287,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
         taskIndex: currentTaskIndex,
       });
 
-      if (!isLastTask) {
-        setTimeout(() => setCurrentTaskIndex(prev => prev + 1), 700);
-      } else {
-        setShowResults(true);
-        handleCompleteLesson();
-      }
+      // Переход к следующему заданию подтверждается пользователем кнопкой.
     } catch (e) {
       console.error('submit-answer failed', e);
       const message = parseRuntimeError(e);
@@ -302,7 +302,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
   };
 
   const handleTaskSkip = () => {
-    if (submitAnswer.isPending) return;
+    if (submitAnswer.isPending || awaitingUserAction) return;
     hapticFeedback.impact('light');
     
     // Track skip
@@ -324,18 +324,45 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     }
   };
 
+  const handleValidationAction = () => {
+    if (!lastValidation) return;
+
+    if (!lastValidation.isCorrect) {
+      hapticFeedback.selection();
+      setAwaitingUserAction(false);
+      setLastValidation(null);
+      setRetryNonce((prev) => prev + 1);
+      return;
+    }
+
+    hapticFeedback.impact('light');
+    setAwaitingUserAction(false);
+
+    if (currentTaskIndex < tasks.length - 1) {
+      setCurrentTaskIndex((prev) => prev + 1);
+    } else {
+      setShowResults(true);
+      const completedCount = completedTasks.includes(currentTaskIndex)
+        ? completedTasks.length
+        : completedTasks.length + 1;
+      handleCompleteLesson(completedCount);
+    }
+  };
+
   const handlePreviousTask = () => {
+    if (awaitingUserAction) return;
     if (currentTaskIndex > 0) {
       hapticFeedback.selection();
       setCurrentTaskIndex(prev => prev - 1);
     }
   };
 
-  const handleCompleteLesson = async () => {
+  const handleCompleteLesson = async (finalCompletedCount?: number) => {
     if (!hasStartedLesson || !lessonStartTime || !lesson) return;
 
     const duration = Math.floor((Date.now() - lessonStartTime.getTime()) / 1000);
-    const score = Math.round((completedTasks.length / tasks.length) * 100);
+    const completedCount = typeof finalCompletedCount === 'number' ? finalCompletedCount : completedTasks.length;
+    const score = Math.round((completedCount / tasks.length) * 100);
     
     tracking.lessonCompleted(lesson.lessonRef, duration);
     // Track in Yandex.Metrika
@@ -344,7 +371,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
       lessonRef: lesson.lessonRef,
       duration,
       score,
-      completedTasks: completedTasks.length,
+      completedTasks: completedCount,
       totalTasks: tasks.length
     });
 
@@ -589,7 +616,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
     <Screen>
       <div className="max-w-md mx-auto">
         {/* Header with Breadcrumb */}
-        <div className="mb-6">
+        <div className="mb-4">
           {/* Breadcrumbs */}
           <Breadcrumbs
             moduleTitle={navigationParams?.moduleTitle || 'Модуль'}
@@ -600,7 +627,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
 
           {/* Lesson Description */}
           {lesson?.description && (
-            <p className="text-telegram-hint text-center text-sm mb-4">
+            <p className="text-telegram-hint text-center text-xs mb-3 line-clamp-2">
               {lesson.description}
             </p>
           )}
@@ -609,12 +636,12 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
           <LessonProgress
             currentTask={currentTaskIndex}
             totalTasks={tasks.length}
-            className="mb-4"
+            className="mb-3"
           />
 
           {/* Task Type Badge */}
           {currentTask && (
-            <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="flex items-center justify-center gap-2 mb-3">
               <div className="px-3 py-1 bg-telegram-accent/10 text-telegram-accent rounded-full text-xs font-medium uppercase">
                 {getTaskTypeBadge(currentTask.type)}
               </div>
@@ -638,17 +665,31 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
           <div className="mb-6">
             {lastValidation && (
               <Card className={`mb-3 ${lastValidation.isCorrect ? 'border border-green-500/30' : 'border border-orange-500/30'}`}>
-                <div className="text-sm">
+                <div className="text-sm space-y-2">
                   <div className={lastValidation.isCorrect ? 'text-green-400 font-semibold' : 'text-orange-400 font-semibold'}>
-                    {lastValidation.isCorrect ? 'Верно ✅' : 'Почти, попробуй ещё 💡'}
+                    {lastValidation.isCorrect ? 'Верно ✅' : 'Неверно ❌'}
                   </div>
-                  {lastValidation.feedback && <div className="text-telegram-hint mt-1">{lastValidation.feedback}</div>}
-                  {lastValidation.explanation && <div className="text-telegram-hint mt-1">{lastValidation.explanation}</div>}
+                  {lastValidation.feedback && <div className="text-telegram-hint">{lastValidation.feedback}</div>}
+                  {lastValidation.explanation && <div className="text-telegram-hint">{lastValidation.explanation}</div>}
+
+                  {awaitingUserAction && (
+                    <Button
+                      fullWidth
+                      size="lg"
+                      onClick={handleValidationAction}
+                      className={lastValidation.isCorrect ? 'bg-telegram-accent text-white' : ''}
+                      variant={lastValidation.isCorrect ? 'primary' : 'ghost'}
+                    >
+                      {lastValidation.isCorrect
+                        ? (currentTaskIndex < tasks.length - 1 ? 'Продолжить' : 'Завершить урок')
+                        : 'Попробовать ещё раз'}
+                    </Button>
+                  )}
                 </div>
               </Card>
             )}
             <TaskRenderer
-              key={currentTask.ref}
+              key={`${currentTask.ref}:${retryNonce}`}
               task={currentTask}
               onAnswer={handleTaskAnswer}
               onSkip={handleTaskSkip}
@@ -679,7 +720,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
             <Button
               variant="ghost"
               onClick={handlePreviousTask}
-              disabled={currentTaskIndex === 0}
+              disabled={currentTaskIndex === 0 || awaitingUserAction || submitAnswer.isPending}
               className="flex items-center justify-center gap-2 disabled:opacity-50 order-2 sm:order-1"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -691,6 +732,7 @@ export const LessonScreen: React.FC<LessonScreenProps> = () => {
             <Button
               variant="ghost"
               onClick={handleTaskSkip}
+              disabled={awaitingUserAction || submitAnswer.isPending}
               className="flex items-center justify-center gap-2 text-telegram-hint order-1 sm:order-2"
             >
               Пропустить
